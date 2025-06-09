@@ -1,0 +1,6 @@
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "images/logo_moji.png"
+  adaptive_icon_background: "#FFFFFF" # Màu nền cho Android (dùng màu xanh của logo mày)
+  adaptive_icon_foreground: "images/logo_moji.png"
