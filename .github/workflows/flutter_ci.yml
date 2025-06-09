@@ -1,0 +1,23 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: stable
+      - run: flutter pub get
+        working-directory: dntu_focus
+      - run: flutter analyze
+        working-directory: dntu_focus
+      - run: flutter test
+        working-directory: dntu_focus

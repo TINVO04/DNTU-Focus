@@ -36,9 +36,14 @@ class TimerActions {
 }
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(const HomeState()) {
-    _initialize();
-    _initAudioPlayerListeners(); // NEW: Gọi hàm khởi tạo listener cho AudioPlayer
+  /// When [skipInit] is true the cubit will not perform heavy initialization
+  /// such as opening Hive boxes or setting up audio listeners. This is useful
+  /// for unit tests where those dependencies are not available.
+  HomeCubit({bool skipInit = false}) : super(const HomeState()) {
+    if (!skipInit) {
+      _initialize();
+      _initAudioPlayerListeners(); // NEW: Gọi hàm khởi tạo listener cho AudioPlayer
+    }
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
