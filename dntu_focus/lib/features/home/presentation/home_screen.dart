@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // Tính toán khoảng trống cuối màn hình
     // Tăng giá trị này nếu bạn muốn khoảng trống lớn hơn giữa menu và bottom nav bar
-    final double bottomSpacerHeight = screenHeight * 0.05; // Ví dụ: 2% chiều cao màn hình
+    final double bottomSpacerHeight = screenHeight * 0.05; // Ví dụ: 5% chiều cao màn hình
 
     return MultiBlocListener(
       listeners: [
