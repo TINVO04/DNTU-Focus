@@ -5,6 +5,7 @@ import '../data/report_repository.dart';
 import '../data/models/pomodoro_session_model.dart'; // CẦN CHO ReportState
 import '../../tasks/data/models/project_model.dart';    // CẦN CHO ReportState
 import '../../tasks/data/models/project_tag_repository.dart';
+import '../data/report_time_range.dart';
 
 part 'report_state.dart'; // Dòng này giữ nguyên
 
