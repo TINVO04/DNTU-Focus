@@ -23,6 +23,7 @@ import 'features/tasks/data/models/tag_model.dart';
 import 'features/tasks/data/models/task_model.dart';
 import 'features/tasks/data/task_repository.dart';
 import 'features/tasks/domain/task_cubit.dart';
+import 'features/report/data/report_repository.dart';
 
 class AppData extends InheritedWidget {
   final Box<Task> taskBox;
@@ -169,6 +170,9 @@ class _MyAppState extends State<MyApp> {
               projectBox: widget.projectBox,
               tagBox: widget.tagBox,
             ),
+          ),
+          Provider<ReportRepository>(
+            create: (_) => ReportRepository(),
           ),
           BlocProvider<AuthCubit>(
             create: (context) => AuthCubit(
