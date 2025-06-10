@@ -22,7 +22,7 @@ class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
 @JsonSerializable()
 class PomodoroSessionRecordModel extends Equatable {
   final String id;
-  final String userId;
+  final String? userId;
 
   @TimestampConverter()
   final DateTime startTime;
@@ -37,7 +37,7 @@ class PomodoroSessionRecordModel extends Equatable {
 
   const PomodoroSessionRecordModel({
     required this.id,
-    required this.userId,
+    this.userId,
     required this.startTime,
     required this.endTime,
     required this.duration,
