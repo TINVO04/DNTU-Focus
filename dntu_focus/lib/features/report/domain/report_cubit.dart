@@ -69,8 +69,10 @@ class ReportCubit extends Cubit<ReportState> {
       // Kiểm tra và ép kiểu an toàn cho projects và tasks
       final projectsRaw = results[13];
       final tasksRaw = results[14];
-      final projects = projectsRaw is List ? projectsRaw.cast<Project>() : [];
-      final tasks = tasksRaw is List ? tasksRaw.cast<Task>() : [];
+      final List<Project> projects =
+          projectsRaw is List ? projectsRaw.cast<Project>() : <Project>[];
+      final List<Task> tasks =
+          tasksRaw is List ? tasksRaw.cast<Task>() : <Task>[];
 
       // Gán kết quả vào state
       emit(state.copyWith(
