@@ -20,7 +20,7 @@ class TasksReportTab extends StatelessWidget {
           const SizedBox(height: 16),
           _buildTaskFocusList(),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Project Time Disctribution', filter: 'Weekly'),
+          _buildSectionHeader(context, title: 'Project Time Distribution', filter: 'Weekly'),
           const SizedBox(height: 16),
           // Placeholder cho biểu đồ Donut
           Container(
