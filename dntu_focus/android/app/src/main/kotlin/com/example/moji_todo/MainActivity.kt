@@ -18,9 +18,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import androidx.core.app.ActivityCompat
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.IntentFilter
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.media.AudioAttributes
@@ -37,27 +35,9 @@ class MainActivity : FlutterActivity() {
     private val REQUEST_NOTIFICATION_PERMISSION = 1001
     private val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS = 1002
 
-    class sessionEndReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Log.d("MainActivity", "Received broadcast in static receiver: action=${intent.action}")
-            if (intent.action == TimerService.ACTION_SESSION_END) {
-                val isWorkSession = intent.getBooleanExtra("isWorkSession", true)
-                Log.d("MainActivity", "Processing SESSION_END in static receiver: isWorkSession=$isWorkSession")
-
-                val mainActivityIntent = Intent(context, MainActivity::class.java).apply {
-                    action = "com.example.moji_todo.SESSION_END_ACTIVATED"
-                    putExtra("isWorkSession", isWorkSession)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                }
-                context.startActivity(mainActivityIntent)
-                Log.d("MainActivity", "Sent intent to MainActivity to handle SESSION_END from static receiver.")
-            }
-        }
-    }
-
     companion object {
         var timerEvents: EventChannel.EventSink? = null
-        const val TIMER_NOTIFICATION_ID = 100
+        const val TIMER_NOTIFICATION_ID = TimerService.TIMER_NOTIFICATION_ID
         const val SESSION_END_NOTIFICATION_ID = 101
     }
 

@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
+import com.example.moji_todo.SessionEndReceiver
 
 interface TimerStrategy {
     fun tick(currentSeconds: Int): Int
@@ -434,7 +435,7 @@ class TimerService : Service() {
             }
             try {
                 val explicitIntent = Intent(intent).apply {
-                    component = ComponentName(applicationContext, MainActivity.sessionEndReceiver::class.java)
+                    component = ComponentName(applicationContext, SessionEndReceiver::class.java)
                 }
                 sendBroadcast(explicitIntent)
                 hasSentEndNotification = true
