@@ -5,6 +5,7 @@ import 'package:moji_todo/features/report/domain/report_state.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../widgets/focus_time_bar_chart.dart';
 import '../widgets/summary_card.dart';
+import '../widgets/pomodoro_heatmap.dart';
 
 class PomodoroReportTab extends StatelessWidget {
   const PomodoroReportTab({super.key});
@@ -36,7 +37,7 @@ class PomodoroReportTab extends StatelessWidget {
           const SizedBox(height: 24),
           _buildSectionHeader(context, title: 'Pomodoro Records', filterText: 'Weekly'),
           const SizedBox(height: 16),
-          _buildPomodoroHeatmap(),
+          _buildPomodoroHeatmap(context),
           const SizedBox(height: 24),
           _buildSectionHeader(context, title: 'Focus Time Goal', filterText: 'Monthly'),
           const SizedBox(height: 16),
@@ -133,18 +134,17 @@ class PomodoroReportTab extends StatelessWidget {
     );
   }
 
-  Widget _buildPomodoroHeatmap() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: const Center(
-        child: Text(
-          'Heatmap sẽ được hiển thị ở đây',
-          style: TextStyle(color: Colors.grey),
-        ),
+  Widget _buildPomodoroHeatmap(BuildContext context) {
+    final state = context.watch<ReportCubit>().state;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: PomodoroHeatmap(data: state.pomodoroHeatmapData),
       ),
     );
   }
@@ -178,7 +178,10 @@ class PomodoroReportTab extends StatelessWidget {
             ),
             selectedTextStyle: TextStyle(color: Theme.of(context).primaryColor),
           ),
-          selectedDayPredicate: (day) => day.day % 3 == 0,
+          selectedDayPredicate: (day) {
+            final state = context.watch<ReportCubit>().state;
+            return state.focusGoalMetDays.contains(DateUtils.dateOnly(day));
+          },
         ),
       ),
     );

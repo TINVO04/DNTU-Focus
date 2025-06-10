@@ -44,6 +44,10 @@ class ReportCubit extends Cubit<ReportState> {
         _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // Future<Map<String, Duration>>
         _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks), // Future<Map<DateTime, Map<String?, Duration>>>
 
+        // Heatmap and goal data
+        _reportRepository.getPomodoroRecordsHeatmapData(range: ReportTimeRange.lastTwoWeeks),
+        _reportRepository.getDaysMeetingFocusGoal(ReportTimeRange.lastTwoWeeks, const Duration(hours: 2)),
+
         // Dữ liệu tra cứu
         Future.value(_projectTagRepository.getProjects()), // Future<List<Project>>
         _taskRepository.getTasks(), // Future<List<Task>>
@@ -65,10 +69,12 @@ class ReportCubit extends Cubit<ReportState> {
       final projectTimeDistribution = results[10] as Map<String?, Duration>;
       final taskFocusTime = results[11] as Map<String, Duration>;
       final focusTimeChartData = results[12] as Map<DateTime, Map<String?, Duration>>;
+      final heatmapData = results[13] as Map<DateTime, List<PomodoroSessionRecordModel>>;
+      final goalDays = results[14] as Set<DateTime>;
 
       // Kiểm tra và ép kiểu an toàn cho projects và tasks
-      final projectsRaw = results[13];
-      final tasksRaw = results[14];
+      final projectsRaw = results[15];
+      final tasksRaw = results[16];
       final List<Project> projects =
           projectsRaw is List ? projectsRaw.cast<Project>() : <Project>[];
       final List<Task> tasks =
@@ -93,6 +99,8 @@ class ReportCubit extends Cubit<ReportState> {
         projectTimeDistribution: projectTimeDistribution,
         taskFocusTime: taskFocusTime,
         focusTimeChartData: focusTimeChartData,
+        pomodoroHeatmapData: heatmapData,
+        focusGoalMetDays: goalDays,
         // Dữ liệu tra cứu
         allProjects: projects.isEmpty ? [] : projects,
         allTasks: tasks.isEmpty ? [] : tasks,
