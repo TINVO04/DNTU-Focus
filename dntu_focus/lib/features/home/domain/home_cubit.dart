@@ -226,6 +226,7 @@ class HomeCubit extends Cubit<HomeState> {
               ));
               if (state.selectedTask != null) {
                 await _updateTaskPomodoroState(state.selectedTask, false, 0);
+                selectTask(null, state.totalSessions);
               }
               await _notificationChannel.invokeMethod(TimerActions.stop);
               print('Fall-through in auto-switch: all sessions completed or logic error.');
@@ -815,6 +816,20 @@ class HomeCubit extends Cubit<HomeState> {
     final user = _auth.currentUser;
     if (user == null || taskTitle == null) return;
 
+    final taskBox = Hive.box<Task>('tasks');
+    final taskKey = taskBox.keys.firstWhere(
+      (k) {
+        final t = taskBox.get(k);
+        return t?.title == taskTitle && t?.userId == user.uid;
+      },
+      orElse: () => null,
+    );
+
+    Task? hiveTask;
+    if (taskKey != null) {
+      hiveTask = taskBox.get(taskKey);
+    }
+
     final snapshot = await _firestore
         .collection('users')
         .doc(user.uid)
@@ -824,11 +839,38 @@ class HomeCubit extends Cubit<HomeState> {
 
     if (snapshot.docs.isNotEmpty) {
       final taskDoc = snapshot.docs.first;
-      await taskDoc.reference.update({
+      final data = taskDoc.data();
+      int? estimated = data['estimatedPomodoros'] as int?;
+      final updates = {
         'isPomodoroActive': isActive,
         'remainingPomodoroSeconds': remainingSeconds,
         'completedPomodoros': state.currentSession,
-      });
+      };
+      if (!isActive && estimated != null && state.currentSession >= estimated) {
+        updates['isCompleted'] = true;
+        updates['completionDate'] = Timestamp.fromDate(DateTime.now());
+        if (hiveTask != null) {
+          hiveTask = hiveTask!.copyWith(
+            isCompleted: true,
+            completionDate: DateTime.now(),
+            isPomodoroActive: false,
+            remainingPomodoroSeconds: 0,
+            completedPomodoros: state.currentSession,
+          );
+        }
+      } else if (hiveTask != null) {
+        hiveTask = hiveTask!.copyWith(
+          isPomodoroActive: isActive,
+          remainingPomodoroSeconds: remainingSeconds,
+          completedPomodoros: state.currentSession,
+        );
+      }
+
+      await taskDoc.reference.update(updates);
+    }
+
+    if (taskKey != null && hiveTask != null) {
+      await taskBox.put(taskKey, hiveTask!);
     }
   }
 
