@@ -9,7 +9,6 @@ import '../widgets/summary_card.dart';
 class PomodoroReportTab extends StatelessWidget {
   const PomodoroReportTab({super.key});
 
-  // Helper để định dạng Duration thành chuỗi "Xh Ym"
   String _formatDuration(Duration duration) {
     if (duration.inMinutes == 0) return '0m';
     final hours = duration.inHours;
@@ -26,7 +25,6 @@ class PomodoroReportTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lắng nghe sự thay đổi của ReportState
     final state = context.watch<ReportCubit>().state;
 
     return SingleChildScrollView(
@@ -44,7 +42,6 @@ class PomodoroReportTab extends StatelessWidget {
           const SizedBox(height: 16),
           _buildFocusGoalCalendar(context),
           const SizedBox(height: 24),
-          // Tiêu đề với Dropdown filter thật
           _buildSectionHeader(
             context,
             title: 'Focus Time Chart',
@@ -59,7 +56,6 @@ class PomodoroReportTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Truyền dữ liệu thật vào biểu đồ cột
           FocusTimeBarChart(
             chartData: state.focusTimeChartData,
             allProjects: state.allProjects,
@@ -69,7 +65,6 @@ class PomodoroReportTab extends StatelessWidget {
     );
   }
 
-  // Cập nhật để nhận dữ liệu từ state
   Widget _buildSummaryCards(ReportState state) {
     return GridView.count(
       crossAxisCount: 2,
@@ -83,11 +78,11 @@ class PomodoroReportTab extends StatelessWidget {
         SummaryCard(value: _formatDuration(state.focusTimeThisWeek), label: 'Focus Time This Week'),
         SummaryCard(value: _formatDuration(state.focusTimeThisTwoWeeks), label: 'Focus Time This Two Weeks'),
         SummaryCard(value: _formatDuration(state.focusTimeThisMonth), label: 'Focus Time This Month'),
+        SummaryCard(value: _formatDuration(state.focusTimeThisYear), label: 'Focus Time This Year'),
       ],
     );
   }
 
-  // Cập nhật để nhận filter là một Widget
   Widget _buildSectionHeader(BuildContext context, {required String title, String? filterText, Widget? filterWidget}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -114,7 +109,6 @@ class PomodoroReportTab extends StatelessWidget {
     );
   }
 
-  // Widget DropdownButton thật
   Widget _buildFilterDropdown(BuildContext context,
       {required ReportDataFilter value, required void Function(ReportDataFilter?) onChanged}) {
     return Container(
@@ -137,7 +131,6 @@ class PomodoroReportTab extends StatelessWidget {
     );
   }
 
-  // Các widget giao diện giả còn lại (chưa có logic)
   Widget _buildPomodoroHeatmap() {
     return Container(
       padding: const EdgeInsets.all(12),

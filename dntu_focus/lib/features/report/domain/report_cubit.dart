@@ -23,62 +23,83 @@ class ReportCubit extends Cubit<ReportState> {
     try {
       emit(state.copyWith(status: ReportStatus.loading));
 
-      // Sử dụng Future.wait để tải nhiều dữ liệu cùng lúc cho hiệu quả
+      // Sử dụng Future.wait với danh sách Future
       final results = await Future.wait([
         // Pomodoro Stats
-        _reportRepository.getProjectTimeDistributionForRange(
-            ReportTimeRange.today),
-        _reportRepository.getProjectTimeDistributionForRange(
-            ReportTimeRange.thisWeek),
-        _reportRepository.getProjectTimeDistributionForRange(
-            ReportTimeRange.lastTwoWeeks),
-        _reportRepository.getProjectTimeDistributionForRange(
-            ReportTimeRange.thisMonth),
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.today), // Future<Duration>
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisWeek), // Future<Duration>
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.lastTwoWeeks), // Future<Duration>
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisMonth), // Future<Duration>
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisYear), // Future<Duration>
 
         // Task Stats
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today),
-        _reportRepository.getCompletedTasksCountForRange(
-            ReportTimeRange.thisWeek),
-        _reportRepository.getCompletedTasksCountForRange(
-            ReportTimeRange.lastTwoWeeks),
-        _reportRepository.getCompletedTasksCountForRange(
-            ReportTimeRange.thisMonth),
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today), // Future<int>
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisWeek), // Future<int>
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.lastTwoWeeks), // Future<int>
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisMonth), // Future<int>
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisYear), // Future<int>
 
         // Chart and List Data (với filter mặc định)
-        _reportRepository.getProjectTimeDistributionForRange(
-            ReportTimeRange.thisWeek),
-        _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // Giả sử mặc định là 2 tuần
-        _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks),
+        _reportRepository.getProjectTimeDistributionForRange(ReportTimeRange.thisWeek), // Future<Map<String?, Duration>>
+        _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // Future<Map<String, Duration>>
+        _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks), // Future<Map<DateTime, Map<String?, Duration>>>
 
         // Dữ liệu tra cứu
-        _projectTagRepository.getProjects(),
-        _taskRepository.getTasks(),
-      ]);
+        Future.value(_projectTagRepository.getProjects()), // Future<List<Project>>
+        _taskRepository.getTasks(), // Future<List<Task>>
+      ].map((future) => future as Future));
+
+      // Ép kiểu an toàn từng phần tử
+      final focusTimeToday = results[0] as Duration;
+      final focusTimeThisWeek = results[1] as Duration;
+      final focusTimeThisTwoWeeks = results[2] as Duration;
+      final focusTimeThisMonth = results[3] as Duration;
+      final focusTimeThisYear = results[4] as Duration;
+
+      final tasksCompletedToday = results[5] as int;
+      final tasksCompletedThisWeek = results[6] as int;
+      final tasksCompletedThisTwoWeeks = results[7] as int;
+      final tasksCompletedThisMonth = results[8] as int;
+      final tasksCompletedThisYear = results[9] as int;
+
+      final projectTimeDistribution = results[10] as Map<String?, Duration>;
+      final taskFocusTime = results[11] as Map<String, Duration>;
+      final focusTimeChartData = results[12] as Map<DateTime, Map<String?, Duration>>;
+
+      // Kiểm tra và ép kiểu an toàn cho projects và tasks
+      final projectsRaw = results[13];
+      final tasksRaw = results[14];
+      final projects = projectsRaw is List ? projectsRaw.cast<Project>() : [];
+      final tasks = tasksRaw is List ? tasksRaw.cast<Task>() : [];
 
       // Gán kết quả vào state
       emit(state.copyWith(
         status: ReportStatus.success,
         // Pomodoro
-        focusTimeToday: (results[0] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
-        focusTimeThisWeek: (results[1] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
-        focusTimeThisTwoWeeks: (results[2] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
-        focusTimeThisMonth: (results[3] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
+        focusTimeToday: focusTimeToday,
+        focusTimeThisWeek: focusTimeThisWeek,
+        focusTimeThisTwoWeeks: focusTimeThisTwoWeeks,
+        focusTimeThisMonth: focusTimeThisMonth,
+        focusTimeThisYear: focusTimeThisYear,
         // Tasks
-        tasksCompletedToday: results[4] as int,
-        tasksCompletedThisWeek: results[5] as int,
-        tasksCompletedThisTwoWeeks: results[6] as int,
-        tasksCompletedThisMonth: results[7] as int,
+        tasksCompletedToday: tasksCompletedToday,
+        tasksCompletedThisWeek: tasksCompletedThisWeek,
+        tasksCompletedThisTwoWeeks: tasksCompletedThisTwoWeeks,
+        tasksCompletedThisMonth: tasksCompletedThisMonth,
+        tasksCompletedThisYear: tasksCompletedThisYear,
         // Biểu đồ và danh sách
-        projectTimeDistribution: results[8] as Map<String?, Duration>,
-        taskFocusTime: results[9] as Map<String, Duration>,
-        focusTimeChartData: results[10] as Map<DateTime, Map<String?, Duration>>,
+        projectTimeDistribution: projectTimeDistribution,
+        taskFocusTime: taskFocusTime,
+        focusTimeChartData: focusTimeChartData,
         // Dữ liệu tra cứu
-        allProjects: results[11] as List<Project>,
-        allTasks: results[12] as List<Task>,
+        allProjects: projects.isEmpty ? [] : projects,
+        allTasks: tasks.isEmpty ? [] : tasks,
       ));
-
     } catch (e) {
-      emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(
+        status: ReportStatus.failure,
+        errorMessage: 'Failed to load data: ${e.toString()}',
+      ));
     }
   }
 
@@ -88,12 +109,17 @@ class ReportCubit extends Cubit<ReportState> {
       emit(state.copyWith(status: ReportStatus.loading, projectDistributionFilter: filter));
 
       final range = _getRangeFromFilter(filter);
-      final newData =
-          await _reportRepository.getProjectTimeDistributionForRange(range);
+      final newData = await _reportRepository.getProjectTimeDistributionForRange(range);
 
-      emit(state.copyWith(status: ReportStatus.success, projectTimeDistribution: newData));
+      emit(state.copyWith(
+        status: ReportStatus.success,
+        projectTimeDistribution: newData.isEmpty ? {} : newData,
+      ));
     } catch (e) {
-      emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(
+        status: ReportStatus.failure,
+        errorMessage: 'Failed to load project distribution: ${e.toString()}',
+      ));
     }
   }
 
@@ -105,9 +131,15 @@ class ReportCubit extends Cubit<ReportState> {
       final range = _getRangeFromFilter(filter);
       final newData = await _reportRepository.getFocusTimeChartData(range);
 
-      emit(state.copyWith(status: ReportStatus.success, focusTimeChartData: newData));
+      emit(state.copyWith(
+        status: ReportStatus.success,
+        focusTimeChartData: newData.isEmpty ? {} : newData,
+      ));
     } catch (e) {
-      emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
+      emit(state.copyWith(
+        status: ReportStatus.failure,
+        errorMessage: 'Failed to load chart data: ${e.toString()}',
+      ));
     }
   }
 
@@ -123,7 +155,7 @@ class ReportCubit extends Cubit<ReportState> {
       case ReportDataFilter.monthly:
         return ReportTimeRange.thisMonth;
       case ReportDataFilter.yearly:
-        return ReportTimeRange.thisMonth;
+        return ReportTimeRange.thisYear;
     }
   }
 }

@@ -5,6 +5,8 @@ import 'package:moji_todo/core/utils/my_date_range.dart';
 import 'package:moji_todo/features/report/data/models/pomodoro_session_model.dart';
 import 'package:moji_todo/features/report/data/report_time_range.dart';
 
+import '../../tasks/data/models/task_model.dart';
+
 class ReportRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;

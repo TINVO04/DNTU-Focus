@@ -12,7 +12,6 @@ import '../widgets/focus_time_bar_chart.dart';
 class TasksReportTab extends StatelessWidget {
   const TasksReportTab({super.key});
 
-  // Helper để định dạng Duration thành chuỗi "Xh Ym"
   String _formatDuration(Duration duration) {
     if (duration.inMinutes == 0) return '0m';
     final hours = duration.inHours;
@@ -29,7 +28,6 @@ class TasksReportTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lắng nghe state từ cubit
     final state = context.watch<ReportCubit>().state;
     final cubit = context.read<ReportCubit>();
 
@@ -42,10 +40,8 @@ class TasksReportTab extends StatelessWidget {
           const SizedBox(height: 24),
           _buildSectionHeader(context, title: 'Focus Time', filterText: 'Tasks'),
           const SizedBox(height: 16),
-          // Xây dựng danh sách task từ dữ liệu thật
           _buildTaskFocusList(state),
           const SizedBox(height: 24),
-          // Tiêu đề với dropdown filter thật
           _buildSectionHeader(
             context,
             title: 'Project Time Distribution',
@@ -60,7 +56,6 @@ class TasksReportTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Truyền dữ liệu thật vào biểu đồ tròn
           ProjectDistributionChart(
             distributionData: state.projectTimeDistribution,
             allProjects: state.allProjects,
@@ -68,7 +63,6 @@ class TasksReportTab extends StatelessWidget {
           const SizedBox(height: 24),
           _buildSectionHeader(context, title: 'Task Chart', filterText: 'Biweekly'),
           const SizedBox(height: 16),
-          // Truyền dữ liệu thật vào biểu đồ cột
           FocusTimeBarChart(
             chartData: state.focusTimeChartData,
             allProjects: state.allProjects,
@@ -91,6 +85,7 @@ class TasksReportTab extends StatelessWidget {
         SummaryCard(value: state.tasksCompletedThisWeek.toString(), label: 'Task Completed This Week'),
         SummaryCard(value: state.tasksCompletedThisTwoWeeks.toString(), label: 'Task Completed This Two...'),
         SummaryCard(value: state.tasksCompletedThisMonth.toString(), label: 'Task Completed This Month'),
+        SummaryCard(value: state.tasksCompletedThisYear.toString(), label: 'Task Completed This Year'),
       ],
     );
   }
@@ -121,7 +116,6 @@ class TasksReportTab extends StatelessWidget {
     );
   }
 
-  // Widget DropdownButton thật
   Widget _buildFilterDropdown(BuildContext context,
       {required ReportDataFilter value, required void Function(ReportDataFilter?) onChanged}) {
     return Container(
@@ -155,7 +149,6 @@ class TasksReportTab extends StatelessWidget {
       );
     }
 
-    // Sắp xếp các task theo thời gian tập trung giảm dần
     final sortedTasks = state.taskFocusTime.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -174,18 +167,18 @@ class TasksReportTab extends StatelessWidget {
             final taskId = entry.key;
             final duration = entry.value;
             final task = state.allTasks.firstWhere(
-              (t) => t.id == taskId,
+                  (t) => t.id == taskId,
               orElse: () => Task(id: '?', title: 'Unknown Task'),
             );
             final project = task.projectId != null
                 ? state.allProjects.firstWhere(
-                    (p) => p.id == task.projectId,
-                    orElse: () => Project(id: '', name: 'Unknown Project', color: Colors.grey),
-                  )
+                  (p) => p.id == task.projectId,
+              orElse: () => Project(id: '', name: 'Unknown Project', color: Colors.grey),
+            )
                 : null;
 
             return TaskFocusListItem(
-              title: task.title,
+              title: task.title ?? 'Unknown Task',
               time: _formatDuration(duration),
               progress: maxDuration > 0 ? duration.inSeconds / maxDuration : 0,
               color: project?.color ?? Colors.grey,

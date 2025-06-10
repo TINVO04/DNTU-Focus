@@ -1,6 +1,4 @@
-// lib/core/utils/date_utils.dart
-// import 'package:flutter/material.dart'; // Không cần import này nữa nếu bạn không dùng DateRange gốc
-import 'my_date_range.dart'; // Import class tùy chỉnh của bạn
+import 'my_date_range.dart';
 
 class AppDateUtils {
   static MyDateRange getTodayRange() {
@@ -43,5 +41,17 @@ class AppDateUtils {
         : DateTime.utc(now.year, now.month + 1, 1);
     final monthEnd = nextMonthStart.subtract(const Duration(microseconds: 1));
     return MyDateRange(start: monthStart, end: monthEnd);
+  }
+
+  static MyDateRange getCurrentYearRange() {
+    final now = DateTime.now();
+    final yearStart = DateTime.utc(now.year, 1, 1);
+    final yearEnd = DateTime.utc(now.year, 12, 31, 23, 59, 59, 999, 999);
+    return MyDateRange(start: yearStart, end: yearEnd);
+  }
+
+  // Hàm tiện ích để cắt bỏ giờ, phút, giây
+  static DateTime dateOnly(DateTime dateTime) {
+    return DateTime.utc(dateTime.year, dateTime.month, dateTime.day);
   }
 }

@@ -1,9 +1,7 @@
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/my_date_range.dart';
 
-enum ReportTimeRange { today, thisWeek, lastTwoWeeks, thisMonth }
-
-
+enum ReportTimeRange { today, thisWeek, lastTwoWeeks, thisMonth, thisYear }
 
 extension ReportTimeRangeX on ReportTimeRange {
   MyDateRange get range {
@@ -13,9 +11,11 @@ extension ReportTimeRangeX on ReportTimeRange {
       case ReportTimeRange.thisWeek:
         return AppDateUtils.getCurrentWeekRange();
       case ReportTimeRange.lastTwoWeeks:
-        return AppDateUtils.getLastTwoWeeksRange();
+        return AppDateUtils.getBiweeklyRange(); // Đổi sang getBiweeklyRange
       case ReportTimeRange.thisMonth:
         return AppDateUtils.getCurrentMonthRange();
+      case ReportTimeRange.thisYear:
+        return AppDateUtils.getCurrentYearRange();
     }
   }
 }
