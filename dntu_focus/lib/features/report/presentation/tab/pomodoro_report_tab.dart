@@ -74,11 +74,13 @@ class PomodoroReportTab extends StatelessWidget {
       mainAxisSpacing: 16,
       childAspectRatio: 1.8,
       children: [
-        SummaryCard(value: _formatDuration(state.focusTimeToday), label: 'Focus Time Today'),
-        SummaryCard(value: _formatDuration(state.focusTimeThisWeek), label: 'Focus Time This Week'),
-        SummaryCard(value: _formatDuration(state.focusTimeThisTwoWeeks), label: 'Focus Time This Two Weeks'),
-        SummaryCard(value: _formatDuration(state.focusTimeThisMonth), label: 'Focus Time This Month'),
-        SummaryCard(value: _formatDuration(state.focusTimeThisYear), label: 'Focus Time This Year'),
+        // ===== SỬA LỖI: Chỉ giữ lại 4 thẻ để phù hợp với layout 2 cột =====
+        SummaryCard(value: state.tasksCompletedToday.toString(), label: 'Task Completed Today'),
+        SummaryCard(value: state.tasksCompletedThisWeek.toString(), label: 'Task Completed This Week'),
+        SummaryCard(value: state.tasksCompletedThisTwoWeeks.toString(), label: 'Task Completed This Two...'),
+        SummaryCard(value: state.tasksCompletedThisMonth.toString(), label: 'Task Completed This Month'),
+        // Bỏ thẻ "This Year" đi để tránh làm vỡ layout
+        // SummaryCard(value: state.tasksCompletedThisYear.toString(), label: 'Task Completed This Year'),
       ],
     );
   }
