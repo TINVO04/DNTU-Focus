@@ -159,7 +159,7 @@ class TasksReportTab extends StatelessWidget {
     final sortedTasks = state.taskFocusTime.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final double maxDuration = sortedTasks.first.value.toDouble();
+    final double maxDuration = sortedTasks.first.value.inSeconds.toDouble();
 
     return Card(
       elevation: 0,
@@ -172,7 +172,7 @@ class TasksReportTab extends StatelessWidget {
         child: Column(
           children: sortedTasks.map((entry) {
             final taskId = entry.key;
-            final durationInSeconds = entry.value;
+            final duration = entry.value;
             final task = state.allTasks.firstWhere(
               (t) => t.id == taskId,
               orElse: () => Task(id: '?', title: 'Unknown Task'),
@@ -186,8 +186,8 @@ class TasksReportTab extends StatelessWidget {
 
             return TaskFocusListItem(
               title: task.title,
-              time: _formatDuration(Duration(seconds: durationInSeconds)),
-              progress: maxDuration > 0 ? durationInSeconds / maxDuration : 0,
+              time: _formatDuration(duration),
+              progress: maxDuration > 0 ? duration.inSeconds / maxDuration : 0,
               color: project?.color ?? Colors.grey,
             );
           }).toList(),

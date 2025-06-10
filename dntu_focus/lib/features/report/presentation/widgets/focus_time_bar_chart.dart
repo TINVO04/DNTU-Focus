@@ -1,8 +1,16 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
 
 class FocusTimeBarChart extends StatelessWidget {
-  const FocusTimeBarChart({super.key});
+  final Map<DateTime, Map<String?, Duration>> chartData;
+  final List<Project> allProjects;
+
+  const FocusTimeBarChart({
+    super.key,
+    required this.chartData,
+    required this.allProjects,
+  });
 
   @override
   Widget build(BuildContext context) {
