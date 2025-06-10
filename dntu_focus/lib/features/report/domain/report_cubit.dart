@@ -71,8 +71,8 @@ class ReportCubit extends Cubit<ReportState> {
         taskFocusTime: results[9] as Map<String, int>,
         focusTimeChartData: results[10] as Map<DateTime, Map<String?, int>>,
         // Dữ liệu tra cứu
-        allProjects: results[11] as List<ProjectModel>,
-        allTasks: results[12] as List<TaskModel>,
+        allProjects: results[11] as List<Project>,
+        allTasks: results[12] as List<Task>,
       ));
 
     } catch (e) {
