@@ -19,7 +19,7 @@ class TagAdapter extends TypeAdapter<Tag> {
     return Tag(
       id: fields[0] as String?,
       name: fields[1] as String,
-      textColor: fields[3] as Color,
+      textColor: Color(fields[3] as int),
       isArchived: fields[4] as bool,
       userId: fields[5] as String?,
     );
