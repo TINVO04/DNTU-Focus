@@ -12,8 +12,23 @@ class FocusTimeBarChart extends StatelessWidget {
     required this.allProjects,
   });
 
+  // Helper để tìm project theo ID
+  Project _findProjectById(String? projectId) {
+    if (projectId == null) {
+      return Project(id: 'general', name: 'General', color: Colors.grey.shade400);
+    }
+    return allProjects.firstWhere(
+          (p) => p.id == projectId,
+      orElse: () => Project(id: projectId, name: 'Unknown', color: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Tìm giá trị thời gian tập trung lớn nhất trong tuần (tính bằng giờ)
+    // để xác định maxY cho biểu đồ một cách linh hoạt.
+    final double maxY = _calculateMaxY();
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -27,61 +42,72 @@ class FocusTimeBarChart extends StatelessWidget {
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
-              maxY: 7,
+              maxY: maxY, // Sử dụng maxY động
               gridData: const FlGridData(show: false),
-            borderData: FlBorderData(
-              show: true,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade300),
-                left: BorderSide(color: Colors.grey.shade300),
-              ),
-            ),
-            titlesData: FlTitlesData(
-              show: true,
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 30,
-                  getTitlesWidget: _bottomTitles,
+              borderData: FlBorderData(
+                show: true,
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.shade300),
+                  left: BorderSide(color: Colors.grey.shade300),
                 ),
               ),
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 28,
-                  interval: 1,
-                  getTitlesWidget: _leftTitles,
+              titlesData: FlTitlesData(
+                show: true,
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 30,
+                    getTitlesWidget: _bottomTitles,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: maxY / 4, // Chia khoảng cho trục Y
+                    getTitlesWidget: _leftTitles,
+                  ),
                 ),
               ),
+              barGroups: _getBarGroups(),
             ),
-            barGroups: _getBarGroups(),
           ),
-        ),
         ),
       ),
     );
   }
 
+  // Tính toán giá trị Y tối đa cho biểu đồ (tính bằng giờ)
+  double _calculateMaxY() {
+    if (chartData.isEmpty) return 7; // Giá trị mặc định nếu không có dữ liệu
+
+    double maxHours = 0;
+    for (var dailyEntry in chartData.values) {
+      final totalSeconds = dailyEntry.values.fold<int>(0, (sum, d) => sum + d.inSeconds);
+      final hours = totalSeconds / 3600;
+      if (hours > maxHours) {
+        maxHours = hours;
+      }
+    }
+    // Làm tròn lên đến giờ chẵn gần nhất và thêm một chút đệm
+    return (maxHours.ceil() == 0) ? 1 : maxHours.ceil().toDouble();
+  }
+
+
   // Helper để tạo tiêu đề cho trục Y (bên trái)
   Widget _leftTitles(double value, TitleMeta meta) {
     const style = TextStyle(color: Colors.grey, fontSize: 12);
-    String text;
-    if (value == 0 || value == 7) {
-      text = '';
-    } else if (value % 2 != 0){
-      text = '';
-    }
-    else {
-      text = value.toInt().toString();
-    }
-    // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
-    // Không cần truyền `axisSide` nữa
+    // Chỉ hiển thị giá trị nguyên
+    if (value % 1 != 0) return const SizedBox.shrink();
+    // Không hiển thị giá trị 0
+    if (value == 0) return const SizedBox.shrink();
+
     return SideTitleWidget(
       meta: meta,
       space: 4,
-      child: Text(text, style: style),
+      child: Text('${value.toInt()}h', style: style),
     );
   }
 
@@ -99,8 +125,6 @@ class FocusTimeBarChart extends StatelessWidget {
       case 6: text = const Text('Su', style: style); break;
       default: text = const Text('', style: style); break;
     }
-    // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
-    // Không cần truyền `axisSide` nữa
     return SideTitleWidget(
       meta: meta,
       space: 8,
@@ -108,34 +132,48 @@ class FocusTimeBarChart extends StatelessWidget {
     );
   }
 
-  // Dữ liệu giả cho các cột biểu đồ (Không thay đổi)
+  // ===== ĐÃ SỬA: Dùng dữ liệu thật để tạo các cột biểu đồ =====
   List<BarChartGroupData> _getBarGroups() {
-    final List<List<double>> weeklyData = [
-      [1.0, 1.5, 1.5], [2.0, 1.0, 2.0], [1.0, 0.5, 1.0],
-      [1.5, 1.0, 1.8], [1.2, 1.3, 2.5, 1.0], [2.5, 1.5, 1.0],
-      [2.0, 2.0, 2.5],
-    ];
-    final List<Color> projectColors = [
-      Colors.blue, Colors.green, Colors.red, Colors.orange, Colors.purple, Colors.brown,
-    ];
+    // Sắp xếp dữ liệu theo ngày để đảm bảo thứ tự đúng
+    final sortedKeys = chartData.keys.toList()..sort();
+    final Map<int, Map<String?, Duration>> weeklyData = {};
 
-    return List.generate(weeklyData.length, (index) {
-      final dailyStack = weeklyData[index];
+    for (final date in sortedKeys) {
+      // weekday trả về 1 cho Thứ Hai và 7 cho Chủ Nhật
+      final dayIndex = date.weekday - 1;
+      weeklyData[dayIndex] = chartData[date]!;
+    }
+
+    // Tạo danh sách 7 ngày trong tuần
+    return List.generate(7, (dayIndex) {
+      final dailyData = weeklyData[dayIndex];
       double currentY = 0;
       final rodStackItems = <BarChartRodStackItem>[];
-      for (int i = 0; i < dailyStack.length; i++) {
-        final value = dailyStack[i];
-        rodStackItems.add(
-          BarChartRodStackItem(
-            currentY,
-            currentY + value,
-            projectColors[i % projectColors.length],
-          ),
-        );
-        currentY += value;
+
+      if (dailyData != null && dailyData.isNotEmpty) {
+        // Sắp xếp các project trong ngày theo thời gian để màu sắc ổn định
+        final sortedProjects = dailyData.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        for (final entry in sortedProjects) {
+          final projectId = entry.key;
+          final duration = entry.value;
+          final project = _findProjectById(projectId);
+
+          final valueInHours = duration.inSeconds / 3600.0;
+          rodStackItems.add(
+            BarChartRodStackItem(
+              currentY,
+              currentY + valueInHours,
+              project.color,
+            ),
+          );
+          currentY += valueInHours;
+        }
       }
+
       return BarChartGroupData(
-        x: index,
+        x: dayIndex,
         barRods: [
           BarChartRodData(
             toY: currentY,
