@@ -1,53 +1,84 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:moji_todo/features/report/presentation/widgets/focus_time_bar_chart.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moji_todo/features/report/domain/report_cubit.dart';
+import 'package:moji_todo/features/report/domain/report_state.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
+import '../widgets/project_distribution_chart.dart';
 import '../widgets/summary_card.dart';
+import '../widgets/task_focus_list_item.dart';
+import '../widgets/focus_time_bar_chart.dart';
 
 class TasksReportTab extends StatelessWidget {
   const TasksReportTab({super.key});
 
+  // Helper để định dạng Duration thành chuỗi "Xh Ym"
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes == 0) return '0m';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    String result = '';
+    if (hours > 0) {
+      result += '${hours}h ';
+    }
+    if (minutes > 0) {
+      result += '${minutes}m';
+    }
+    return result.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Lắng nghe state từ cubit
+    final state = context.watch<ReportCubit>().state;
+    final cubit = context.read<ReportCubit>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryCards(),
+          _buildSummaryCards(state),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Focus Time', filter: 'Tasks'),
+          _buildSectionHeader(context, title: 'Focus Time', filterText: 'Tasks'),
           const SizedBox(height: 16),
-          _buildTaskFocusList(),
+          // Xây dựng danh sách task từ dữ liệu thật
+          _buildTaskFocusList(state),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Project Time Disctribution', filter: 'Weekly'),
-          const SizedBox(height: 16),
-          // Placeholder cho biểu đồ Donut
-          Container(
-            height: 250,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text(
-                'Biểu đồ Donut sẽ được hiển thị ở đây',
-                style: TextStyle(color: Colors.grey),
-              ),
+          // Tiêu đề với dropdown filter thật
+          _buildSectionHeader(
+            context,
+            title: 'Project Time Distribution',
+            filterWidget: _buildFilterDropdown(
+              context,
+              value: state.projectDistributionFilter,
+              onChanged: (filter) {
+                if (filter != null) {
+                  cubit.changeProjectDistributionFilter(filter);
+                }
+              },
             ),
           ),
-          const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Task Chart', filter: 'Biweekly'),
           const SizedBox(height: 16),
-          // Placeholder cho biểu đồ cột
-          const FocusTimeBarChart(),
+          // Truyền dữ liệu thật vào biểu đồ tròn
+          ProjectDistributionChart(
+            distributionData: state.projectTimeDistribution,
+            allProjects: state.allProjects,
+          ),
+          const SizedBox(height: 24),
+          _buildSectionHeader(context, title: 'Task Chart', filterText: 'Biweekly'),
+          const SizedBox(height: 16),
+          // Truyền dữ liệu thật vào biểu đồ cột
+          FocusTimeBarChart(
+            chartData: state.focusTimeChartData,
+            allProjects: state.allProjects,
+          ),
         ],
       ),
     );
   }
 
-// bên trong file tasks_report_tab.dart
-  Widget _buildSummaryCards() {
+  Widget _buildSummaryCards(ReportState state) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -55,47 +86,16 @@ class TasksReportTab extends StatelessWidget {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       childAspectRatio: 1.8,
-      children: const [
-        SummaryCard(value: '2', label: 'Task Completed Today'),
-        SummaryCard(value: '25', label: 'Task Completed This Week'),
-        SummaryCard(value: '58', label: 'Task Completed This Two...'),
-        SummaryCard(value: '124', label: 'Task Completed This Month'),
+      children: [
+        SummaryCard(value: state.tasksCompletedToday.toString(), label: 'Task Completed Today'),
+        SummaryCard(value: state.tasksCompletedThisWeek.toString(), label: 'Task Completed This Week'),
+        SummaryCard(value: state.tasksCompletedThisTwoWeeks.toString(), label: 'Task Completed This Two...'),
+        SummaryCard(value: state.tasksCompletedThisMonth.toString(), label: 'Task Completed This Month'),
       ],
     );
   }
 
-  // Widget cho một thẻ thống kê
-  Widget _buildSummaryCard(String value, String label) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget cho tiêu đề của mỗi phần
-  Widget _buildSectionHeader(BuildContext context, {required String title, required String filter}) {
+  Widget _buildSectionHeader(BuildContext context, {required String title, String? filterText, Widget? filterWidget}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -103,35 +103,63 @@ class TasksReportTab extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            children: [
-              Text(filter, style: TextStyle(color: Colors.grey.shade700)),
-              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            ],
-          ),
-        )
+        filterWidget ??
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Text(filterText ?? '', style: TextStyle(color: Colors.grey.shade700)),
+                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                ],
+              ),
+            )
       ],
     );
   }
 
-  // Giao diện cho danh sách focus time theo task
-  Widget _buildTaskFocusList() {
-    // Dữ liệu giả
-    final tasks = [
-      {'title': 'UI/UX Design Research', 'time': '7h 25m', 'progress': 0.9, 'color': Colors.green},
-      {'title': 'Design User Interface (UI)', 'time': '6h 50m', 'progress': 0.8, 'color': Colors.red},
-      {'title': 'Create a Design Wireframe', 'time': '5h 40m', 'progress': 0.7, 'color': Colors.blue},
-      {'title': 'Market Research and Analysis', 'time': '4h 45m', 'progress': 0.6, 'color': Colors.brown},
-      {'title': 'Write a Report & Proposal', 'time': '4h 30m', 'progress': 0.5, 'color': Colors.purple},
-      {'title': 'Write a Research Paper', 'time': '4h 5m', 'progress': 0.4, 'color': Colors.orange},
-      {'title': 'Read Articles', 'time': '3h 40m', 'progress': 0.3, 'color': Colors.cyan},
-    ];
+  // Widget DropdownButton thật
+  Widget _buildFilterDropdown(BuildContext context,
+      {required ReportDataFilter value, required void Function(ReportDataFilter?) onChanged}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButton<ReportDataFilter>(
+        value: value,
+        underline: const SizedBox.shrink(),
+        items: ReportDataFilter.values.map((ReportDataFilter filter) {
+          return DropdownMenuItem<ReportDataFilter>(
+            value: filter,
+            child: Text(filter.name[0].toUpperCase() + filter.name.substring(1)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildTaskFocusList(ReportState state) {
+    if (state.taskFocusTime.isEmpty) {
+      return const Card(
+        elevation: 0,
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Center(child: Text("No focused tasks in this period.")),
+        ),
+      );
+    }
+
+    // Sắp xếp các task theo thời gian tập trung giảm dần
+    final sortedTasks = state.taskFocusTime.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final double maxDuration = sortedTasks.first.value.toDouble();
 
     return Card(
       elevation: 0,
@@ -140,46 +168,22 @@ class TasksReportTab extends StatelessWidget {
         side: BorderSide(color: Colors.grey.shade300),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
-          children: tasks.map((task) => _buildFocusTimeTaskItem(
-            title: task['title'] as String,
-            time: task['time'] as String,
-            progress: task['progress'] as double,
-            color: task['color'] as Color,
-          )).toList(),
-        ),
-      ),
-    );
-  }
+          children: sortedTasks.map((entry) {
+            final taskId = entry.key;
+            final durationInSeconds = entry.value;
+            final task = state.allTasks.firstWhere((t) => t.id == taskId, orElse: () => TaskModel.empty.copyWith(id: '?', title: 'Unknown Task'));
+            final project = task.projectId != null ? state.allProjects.firstWhere((p) => p.id == task.projectId, orElse: () => ProjectModel.empty) : null;
 
-  Widget _buildFocusTimeTaskItem({
-    required String title,
-    required String time,
-    required double progress,
-    required Color color,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text(time, style: TextStyle(color: Colors.grey.shade600)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: color.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ],
+            return TaskFocusListItem(
+              title: task.title,
+              time: _formatDuration(Duration(seconds: durationInSeconds)),
+              progress: maxDuration > 0 ? durationInSeconds / maxDuration : 0,
+              color: project?.color ?? Colors.grey,
+            );
+          }).toList(),
+        ),
       ),
     );
   }

@@ -1,41 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moji_todo/features/report/domain/report_cubit.dart';
+import 'package:moji_todo/features/report/domain/report_state.dart';
 import 'package:table_calendar/table_calendar.dart';
-
 import '../widgets/focus_time_bar_chart.dart';
 import '../widgets/summary_card.dart';
 
 class PomodoroReportTab extends StatelessWidget {
   const PomodoroReportTab({super.key});
 
+  // Helper để định dạng Duration thành chuỗi "Xh Ym"
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes == 0) return '0m';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    String result = '';
+    if (hours > 0) {
+      result += '${hours}h ';
+    }
+    if (minutes > 0) {
+      result += '${minutes}m';
+    }
+    return result.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Lắng nghe sự thay đổi của ReportState
+    final state = context.watch<ReportCubit>().state;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryCards(),
+          _buildSummaryCards(state),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Pomodoro Records', filter: 'Weekly'),
+          _buildSectionHeader(context, title: 'Pomodoro Records', filterText: 'Weekly'),
           const SizedBox(height: 16),
           _buildPomodoroHeatmap(),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Focus Time Goal', filter: 'Monthly'),
+          _buildSectionHeader(context, title: 'Focus Time Goal', filterText: 'Monthly'),
           const SizedBox(height: 16),
           _buildFocusGoalCalendar(context),
           const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Focus Time Chart', filter: 'Biweekly'),
+          // Tiêu đề với Dropdown filter thật
+          _buildSectionHeader(
+            context,
+            title: 'Focus Time Chart',
+            filterWidget: _buildFilterDropdown(
+              context,
+              value: state.focusTimeChartFilter,
+              onChanged: (filter) {
+                if (filter != null) {
+                  context.read<ReportCubit>().changeFocusTimeChartFilter(filter);
+                }
+              },
+            ),
+          ),
           const SizedBox(height: 16),
-          // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
-          // Toàn bộ Container cũ được thay bằng dòng này
-          const FocusTimeBarChart(),
+          // Truyền dữ liệu thật vào biểu đồ cột
+          FocusTimeBarChart(
+            chartData: state.focusTimeChartData,
+            allProjects: state.allProjects,
+          ),
         ],
       ),
     );
   }
 
-  // Widget cho các thẻ thống kê
-  Widget _buildSummaryCards() {
+  // Cập nhật để nhận dữ liệu từ state
+  Widget _buildSummaryCards(ReportState state) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -43,17 +78,17 @@ class PomodoroReportTab extends StatelessWidget {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       childAspectRatio: 1.8,
-      children: const [
-        SummaryCard(value: '2h 5m', label: 'Focus Time Today'),
-        SummaryCard(value: '39h 35m', label: 'Focus Time This Week'),
-        SummaryCard(value: '79h 10m', label: 'Focus Time This Two Weeks'),
-        SummaryCard(value: '160h 25m', label: 'Focus Time This Month'),
+      children: [
+        SummaryCard(value: _formatDuration(state.focusTimeToday), label: 'Focus Time Today'),
+        SummaryCard(value: _formatDuration(state.focusTimeThisWeek), label: 'Focus Time This Week'),
+        SummaryCard(value: _formatDuration(state.focusTimeThisTwoWeeks), label: 'Focus Time This Two Weeks'),
+        SummaryCard(value: _formatDuration(state.focusTimeThisMonth), label: 'Focus Time This Month'),
       ],
     );
   }
 
-  // Widget cho tiêu đề của mỗi phần
-  Widget _buildSectionHeader(BuildContext context, {required String title, required String filter}) {
+  // Cập nhật để nhận filter là một Widget
+  Widget _buildSectionHeader(BuildContext context, {required String title, String? filterText, Widget? filterWidget}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -61,25 +96,48 @@ class PomodoroReportTab extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        // Dropdown giả
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            children: [
-              Text(filter, style: TextStyle(color: Colors.grey.shade700)),
-              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            ],
-          ),
-        )
+        filterWidget ??
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Text(filterText ?? '', style: TextStyle(color: Colors.grey.shade700)),
+                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                ],
+              ),
+            )
       ],
     );
   }
 
-  // Giao diện giả cho Pomodoro Heatmap
+  // Widget DropdownButton thật
+  Widget _buildFilterDropdown(BuildContext context,
+      {required ReportDataFilter value, required void Function(ReportDataFilter?) onChanged}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButton<ReportDataFilter>(
+        value: value,
+        underline: const SizedBox.shrink(),
+        items: ReportDataFilter.values.map((ReportDataFilter filter) {
+          return DropdownMenuItem<ReportDataFilter>(
+            value: filter,
+            child: Text(filter.name[0].toUpperCase() + filter.name.substring(1)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  // Các widget giao diện giả còn lại (chưa có logic)
   Widget _buildPomodoroHeatmap() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -96,7 +154,6 @@ class PomodoroReportTab extends StatelessWidget {
     );
   }
 
-  // Giao diện cho Lịch
   Widget _buildFocusGoalCalendar(BuildContext context) {
     return Card(
       elevation: 0,
@@ -116,8 +173,6 @@ class PomodoroReportTab extends StatelessWidget {
             titleTextStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           calendarStyle: CalendarStyle(
-            defaultTextStyle: const TextStyle(color: Colors.black),
-            weekendTextStyle: const TextStyle(color: Colors.black),
             todayDecoration: BoxDecoration(
               color: Theme.of(context).primaryColor.withOpacity(0.3),
               shape: BoxShape.circle,
@@ -128,9 +183,7 @@ class PomodoroReportTab extends StatelessWidget {
             ),
             selectedTextStyle: TextStyle(color: Theme.of(context).primaryColor),
           ),
-          selectedDayPredicate: (day) {
-            return day.day % 3 == 0;
-          },
+          selectedDayPredicate: (day) => day.day % 3 == 0,
         ),
       ),
     );

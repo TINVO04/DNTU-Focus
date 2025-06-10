@@ -1,158 +1,129 @@
-part of 'report_cubit.dart';
+import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 
+// Enum để định nghĩa các trạng thái tải dữ liệu
 enum ReportStatus { initial, loading, success, failure }
 
-// Defines the active tab
-enum ReportTab { pomodoro, tasks }
-
-// Defines the filter for charts/summaries
-enum ReportDataFilter {
-  today,
-  weekly,
-  biweekly, // or lastTwoWeeks
-  monthly
-}
+// Enum để định nghĩa các bộ lọc thời gian cho biểu đồ
+enum ReportDataFilter { daily, weekly, biweekly, monthly, yearly }
 
 class ReportState extends Equatable {
+  // Trạng thái chung của màn hình
   final ReportStatus status;
-  final ReportTab currentTab;
+  final String? errorMessage;
 
-  // Pomodoro Tab Data
+  // Dữ liệu cho các thẻ thống kê Pomodoro
   final Duration focusTimeToday;
   final Duration focusTimeThisWeek;
-  final Duration focusTimeLastTwoWeeks;
+  final Duration focusTimeThisTwoWeeks;
   final Duration focusTimeThisMonth;
-  final Map<DateTime, List<PomodoroSessionRecordModel>> pomodoroRecordsHeatmap; // Date -> Sessions
-  final Set<DateTime> daysMeetingFocusGoal;
-  final Map<DateTime, Map<String?, Duration>> focusTimeChartData; // Date -> {ProjectId? -> Duration}
-  final ReportDataFilter pomodoroRecordFilter;
-  final ReportDataFilter focusTimeGoalFilter;
-  final ReportDataFilter focusTimeChartFilter;
 
-  // Tasks Tab Data
+  // Dữ liệu cho các thẻ thống kê Tasks
   final int tasksCompletedToday;
   final int tasksCompletedThisWeek;
-  final int tasksCompletedLastTwoWeeks;
+  final int tasksCompletedThisTwoWeeks;
   final int tasksCompletedThisMonth;
-  final List<Map<String, dynamic>> focusTimePerTask; // {'task': Task, 'focusTime': Duration}
-  final Map<String?, Duration> projectTimeDistribution; // ProjectId? -> Duration
-  final Map<DateTime, Map<String?, Duration>> taskFocusChartData; // Similar to focusTimeChartData
-  final ReportDataFilter focusTimePerTaskFilter;
+
+  // Dữ liệu cho các biểu đồ và danh sách
+  final Map<String?, int> projectTimeDistribution; // projectId -> duration
+  final Map<String, int> taskFocusTime; // taskId -> duration
+  final Map<DateTime, Map<String?, int>> focusTimeChartData; // date -> {projectId -> duration}
+
+  // Dữ liệu thô để tra cứu tên, màu sắc...
+  final List<ProjectModel> allProjects;
+  final List<TaskModel> allTasks;
+
+  // Các bộ lọc hiện tại
   final ReportDataFilter projectDistributionFilter;
-  final ReportDataFilter taskChartFilter;
-
-  // To display project names and colors in charts
-  final List<Project> allProjects;
-
-  final String? errorMessage;
+  final ReportDataFilter focusTimeChartFilter;
 
   const ReportState({
     this.status = ReportStatus.initial,
-    this.currentTab = ReportTab.pomodoro,
+    this.errorMessage,
     this.focusTimeToday = Duration.zero,
     this.focusTimeThisWeek = Duration.zero,
-    this.focusTimeLastTwoWeeks = Duration.zero,
+    this.focusTimeThisTwoWeeks = Duration.zero,
     this.focusTimeThisMonth = Duration.zero,
-    this.pomodoroRecordsHeatmap = const {},
-    this.daysMeetingFocusGoal = const {},
-    this.focusTimeChartData = const {},
-    this.pomodoroRecordFilter = ReportDataFilter.weekly,
-    this.focusTimeGoalFilter = ReportDataFilter.monthly,
-    this.focusTimeChartFilter = ReportDataFilter.biweekly,
     this.tasksCompletedToday = 0,
     this.tasksCompletedThisWeek = 0,
-    this.tasksCompletedLastTwoWeeks = 0,
+    this.tasksCompletedThisTwoWeeks = 0,
     this.tasksCompletedThisMonth = 0,
-    this.focusTimePerTask = const [],
     this.projectTimeDistribution = const {},
-    this.taskFocusChartData = const {},
-    this.focusTimePerTaskFilter = ReportDataFilter.today, // Default or common filter
-    this.projectDistributionFilter = ReportDataFilter.weekly,
-    this.taskChartFilter = ReportDataFilter.biweekly,
+    this.taskFocusTime = const {},
+    this.focusTimeChartData = const {},
     this.allProjects = const [],
-    this.errorMessage,
+    this.allTasks = const [],
+    this.projectDistributionFilter = ReportDataFilter.weekly,
+    this.focusTimeChartFilter = ReportDataFilter.biweekly,
   });
 
+  // Hàm copyWith để tạo ra một state mới dựa trên state cũ
+  // Đây là một phần quan trọng của BLoC/Cubit
   ReportState copyWith({
     ReportStatus? status,
-    ReportTab? currentTab,
+    String? errorMessage,
     Duration? focusTimeToday,
     Duration? focusTimeThisWeek,
-    Duration? focusTimeLastTwoWeeks,
+    Duration? focusTimeThisTwoWeeks,
     Duration? focusTimeThisMonth,
-    Map<DateTime, List<PomodoroSessionRecordModel>>? pomodoroRecordsHeatmap,
-    Set<DateTime>? daysMeetingFocusGoal,
-    Map<DateTime, Map<String?, Duration>>? focusTimeChartData,
-    ReportDataFilter? pomodoroRecordFilter,
-    ReportDataFilter? focusTimeGoalFilter,
-    ReportDataFilter? focusTimeChartFilter,
     int? tasksCompletedToday,
     int? tasksCompletedThisWeek,
-    int? tasksCompletedLastTwoWeeks,
+    int? tasksCompletedThisTwoWeeks,
     int? tasksCompletedThisMonth,
-    List<Map<String, dynamic>>? focusTimePerTask,
-    Map<String?, Duration>? projectTimeDistribution,
-    Map<DateTime, Map<String?, Duration>>? taskFocusChartData,
-    ReportDataFilter? focusTimePerTaskFilter,
+    Map<String?, int>? projectTimeDistribution,
+    Map<String, int>? taskFocusTime,
+    Map<DateTime, Map<String?, int>>? focusTimeChartData,
+    List<ProjectModel>? allProjects,
+    List<TaskModel>? allTasks,
     ReportDataFilter? projectDistributionFilter,
-    ReportDataFilter? taskChartFilter,
-    List<Project>? allProjects,
-    String? errorMessage,
-    bool clearErrorMessage = false,
+    ReportDataFilter? focusTimeChartFilter,
   }) {
     return ReportState(
       status: status ?? this.status,
-      currentTab: currentTab ?? this.currentTab,
+      errorMessage: errorMessage ?? this.errorMessage,
       focusTimeToday: focusTimeToday ?? this.focusTimeToday,
       focusTimeThisWeek: focusTimeThisWeek ?? this.focusTimeThisWeek,
-      focusTimeLastTwoWeeks: focusTimeLastTwoWeeks ?? this.focusTimeLastTwoWeeks,
+      focusTimeThisTwoWeeks: focusTimeThisTwoWeeks ?? this.focusTimeThisTwoWeeks,
       focusTimeThisMonth: focusTimeThisMonth ?? this.focusTimeThisMonth,
-      pomodoroRecordsHeatmap: pomodoroRecordsHeatmap ?? this.pomodoroRecordsHeatmap,
-      daysMeetingFocusGoal: daysMeetingFocusGoal ?? this.daysMeetingFocusGoal,
-      focusTimeChartData: focusTimeChartData ?? this.focusTimeChartData,
-      pomodoroRecordFilter: pomodoroRecordFilter ?? this.pomodoroRecordFilter,
-      focusTimeGoalFilter: focusTimeGoalFilter ?? this.focusTimeGoalFilter,
-      focusTimeChartFilter: focusTimeChartFilter ?? this.focusTimeChartFilter,
       tasksCompletedToday: tasksCompletedToday ?? this.tasksCompletedToday,
       tasksCompletedThisWeek: tasksCompletedThisWeek ?? this.tasksCompletedThisWeek,
-      tasksCompletedLastTwoWeeks: tasksCompletedLastTwoWeeks ?? this.tasksCompletedLastTwoWeeks,
-      tasksCompletedThisMonth: tasksCompletedThisMonth ?? this.tasksCompletedThisMonth,
-      focusTimePerTask: focusTimePerTask ?? this.focusTimePerTask,
-      projectTimeDistribution: projectTimeDistribution ?? this.projectTimeDistribution,
-      taskFocusChartData: taskFocusChartData ?? this.taskFocusChartData,
-      focusTimePerTaskFilter: focusTimePerTaskFilter ?? this.focusTimePerTaskFilter,
-      projectDistributionFilter: projectDistributionFilter ?? this.projectDistributionFilter,
-      taskChartFilter: taskChartFilter ?? this.taskChartFilter,
+      tasksCompletedThisTwoWeeks:
+      tasksCompletedThisTwoWeeks ?? this.tasksCompletedThisTwoWeeks,
+      tasksCompletedThisMonth:
+      tasksCompletedThisMonth ?? this.tasksCompletedThisMonth,
+      projectTimeDistribution:
+      projectTimeDistribution ?? this.projectTimeDistribution,
+      taskFocusTime: taskFocusTime ?? this.taskFocusTime,
+      focusTimeChartData: focusTimeChartData ?? this.focusTimeChartData,
       allProjects: allProjects ?? this.allProjects,
-      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
+      allTasks: allTasks ?? this.allTasks,
+      projectDistributionFilter:
+      projectDistributionFilter ?? this.projectDistributionFilter,
+      focusTimeChartFilter: focusTimeChartFilter ?? this.focusTimeChartFilter,
     );
   }
 
+  // props của Equatable để Bloc có thể biết khi nào cần rebuild UI
   @override
   List<Object?> get props => [
     status,
-    currentTab,
+    errorMessage,
     focusTimeToday,
     focusTimeThisWeek,
-    focusTimeLastTwoWeeks,
+    focusTimeThisTwoWeeks,
     focusTimeThisMonth,
-    pomodoroRecordsHeatmap,
-    daysMeetingFocusGoal,
-    focusTimeChartData,
-    pomodoroRecordFilter,
-    focusTimeGoalFilter,
-    focusTimeChartFilter,
     tasksCompletedToday,
     tasksCompletedThisWeek,
-    tasksCompletedLastTwoWeeks,
+    tasksCompletedThisTwoWeeks,
     tasksCompletedThisMonth,
-    focusTimePerTask,
     projectTimeDistribution,
-    taskFocusChartData,
-    focusTimePerTaskFilter,
-    projectDistributionFilter,
-    taskChartFilter,
+    taskFocusTime,
+    focusTimeChartData,
     allProjects,
-    errorMessage,
+    allTasks,
+    projectDistributionFilter,
+    focusTimeChartFilter,
   ];
 }

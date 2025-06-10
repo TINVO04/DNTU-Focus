@@ -1,186 +1,116 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart'; // CẦN CHO ReportState
 import 'package:flutter/material.dart';
-import '../data/report_repository.dart';
-import '../data/models/pomodoro_session_model.dart'; // CẦN CHO ReportState
-import '../../tasks/data/models/project_model.dart';    // CẦN CHO ReportState
-import '../../tasks/data/models/project_tag_repository.dart';
-import '../data/report_time_range.dart';
-
-part 'report_state.dart'; // Dòng này giữ nguyên
+import 'package:moji_todo/core/utils/my_date_range.dart';
+import 'package:moji_todo/features/report/data/report_repository.dart';
+import 'package:moji_todo/features/report/domain/report_state.dart';
+import 'package.dart';
+import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
 
 class ReportCubit extends Cubit<ReportState> {
   final ReportRepository _reportRepository;
-  final ProjectTagRepository _projectTagRepository; // To get all projects for names/colors
+  final ProjectTagRepository _projectTagRepository;
 
-  ReportCubit(this._reportRepository, this._projectTagRepository) : super(const ReportState()) {
+  ReportCubit(this._reportRepository, this._projectTagRepository)
+      : super(const ReportState()) {
     _loadInitialData();
   }
 
   Future<void> _loadInitialData() async {
-    await _fetchAllProjects(); // Fetch projects first
-    await loadPomodoroData();
-    await loadTasksData();
-  }
-
-  Future<void> _fetchAllProjects() async {
     try {
-      final projects = _projectTagRepository.getProjects(); // Assuming this gets all non-archived projects for the user
-      emit(state.copyWith(allProjects: projects));
-    } catch (e) {
-      emit(state.copyWith(status: ReportStatus.failure, errorMessage: 'Failed to load projects: $e'));
-    }
-  }
+      emit(state.copyWith(status: ReportStatus.loading));
 
+      // Sử dụng Future.wait để tải nhiều dữ liệu cùng lúc cho hiệu quả
+      final results = await Future.wait([
+        // Pomodoro Stats
+        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getTodayRange()),
+        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentWeekRange()),
+        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getPreviousTwoWeeksRange()),
+        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentMonthRange()),
 
-  Future<void> loadPomodoroData({
-    ReportDataFilter? recordFilter,
-    ReportDataFilter? goalFilter,
-    ReportDataFilter? chartFilter,
-  }) async {
-    emit(state.copyWith(status: ReportStatus.loading));
-    try {
-      final focusToday = await _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.today);
-      final focusWeek = await _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisWeek);
-      final focusTwoWeeks = await _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.lastTwoWeeks);
-      final focusMonth = await _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisMonth);
+        // Task Stats
+        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getTodayRange()),
+        _report.getCompletedTasksCountForRange(MyDateRange.getCurrentWeekRange()),
+        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getPreviousTwoWeeksRange()),
+        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getCurrentMonthRange()),
 
-      // For Pomodoro Records, use the selected filter or default
-      final currentRecordFilter = recordFilter ?? state.pomodoroRecordFilter;
-      final heatmapData = await _reportRepository.getPomodoroRecordsHeatmapData(
-        daysToGoBack: _daysForFilter(currentRecordFilter), // You'll need a helper for this
-      );
+        // Chart and List Data (với filter mặc định)
+        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentWeekRange()),
+        _reportRepository.getTaskFocusTime(MyDateRange.getPreviousTwoWeeksRange()), // Giả sử mặc định là 2 tuần
+        _reportRepository.getFocusTimeChartData(MyDateRange.getPreviousTwoWeeksRange()),
 
-      // For Focus Time Goal, use the selected filter or default
-      final currentGoalFilter = goalFilter ?? state.focusTimeGoalFilter;
-      final dailyGoal = const Duration(hours: 1); // Example: Make this configurable later
-      final metGoalDays = await _reportRepository.getDaysMeetingFocusGoal(_mapFilterToRange(currentGoalFilter), dailyGoal);
+        // Dữ liệu tra cứu
+        _projectTagRepository.getProjects(),
+        _projectTagRepository.getAllTasks(),
+      ]);
 
-      // For Focus Time Chart, use the selected filter or default
-      final currentChartFilter = chartFilter ?? state.focusTimeChartFilter;
-      final chartData = await _reportRepository.getFocusTimeChartData(_mapFilterToRange(currentChartFilter));
-
+      // Gán kết quả vào state
       emit(state.copyWith(
         status: ReportStatus.success,
-        focusTimeToday: focusToday,
-        focusTimeThisWeek: focusWeek,
-        focusTimeLastTwoWeeks: focusTwoWeeks,
-        focusTimeThisMonth: focusMonth,
-        pomodoroRecordsHeatmap: heatmapData,
-        daysMeetingFocusGoal: metGoalDays,
-        focusTimeChartData: chartData,
-        pomodoroRecordFilter: currentRecordFilter,
-        focusTimeGoalFilter: currentGoalFilter,
-        focusTimeChartFilter: currentChartFilter,
+        // Pomodoro
+        focusTimeToday: Duration(seconds: (results[0] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
+        focusTimeThisWeek: Duration(seconds: (results[1] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
+        focusTimeThisTwoWeeks: Duration(seconds: (results[2] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
+        focusTimeThisMonth: Duration(seconds: (results[3] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
+        // Tasks
+        tasksCompletedToday: results[4] as int,
+        tasksCompletedThisWeek: results[5] as int,
+        tasksCompletedThisTwoWeeks: results[6] as int,
+        tasksCompletedThisMonth: results[7] as int,
+        // Biểu đồ và danh sách
+        projectTimeDistribution: results[8] as Map<String?, int>,
+        taskFocusTime: results[9] as Map<String, int>,
+        focusTimeChartData: results[10] as Map<DateTime, Map<String?, int>>,
+        // Dữ liệu tra cứu
+        allProjects: results[11] as List<ProjectModel>,
+        allTasks: results[12] as List<TaskModel>,
       ));
+
     } catch (e) {
       emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  Future<void> loadTasksData({
-    ReportDataFilter? perTaskFilter,
-    ReportDataFilter? distributionFilter,
-    ReportDataFilter? taskChartFilterParam, // Renamed to avoid conflict
-  }) async {
-    emit(state.copyWith(status: ReportStatus.loading));
+  // Hàm để thay đổi bộ lọc cho biểu đồ phân bổ project
+  Future<void> changeProjectDistributionFilter(ReportDataFilter filter) async {
     try {
-      final completedToday = await _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today);
-      final completedWeek = await _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisWeek);
-      final completedTwoWeeks = await _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.lastTwoWeeks);
-      final completedMonth = await _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisMonth);
+      emit(state.copyWith(status: ReportStatus.loading, projectDistributionFilter: filter));
 
-      final currentPerTaskFilter = perTaskFilter ?? state.focusTimePerTaskFilter;
-      final focusPerTask = await _reportRepository.getFocusTimePerTaskForRange(_mapFilterToRange(currentPerTaskFilter));
+      final range = _getRangeFromFilter(filter);
+      final newData = await _reportRepository.getProjectTimeDistributionForRange(range);
 
-      final currentDistributionFilter = distributionFilter ?? state.projectDistributionFilter;
-      final projectDist = await _reportRepository.getProjectTimeDistributionForRange(_mapFilterToRange(currentDistributionFilter));
-
-      final currentTaskChartFilter = taskChartFilterParam ?? state.taskChartFilter;
-      final taskChart = await _reportRepository.getTaskFocusChartData(_mapFilterToRange(currentTaskChartFilter));
-
-
-      emit(state.copyWith(
-        status: ReportStatus.success,
-        tasksCompletedToday: completedToday,
-        tasksCompletedThisWeek: completedWeek,
-        tasksCompletedLastTwoWeeks: completedTwoWeeks,
-        tasksCompletedThisMonth: completedMonth,
-        focusTimePerTask: focusPerTask,
-        projectTimeDistribution: projectDist,
-        taskFocusChartData: taskChart,
-        focusTimePerTaskFilter: currentPerTaskFilter,
-        projectDistributionFilter: currentDistributionFilter,
-        taskChartFilter: currentTaskChartFilter,
-      ));
+      emit(state.copyWith(status: ReportStatus.success, projectTimeDistribution: newData));
     } catch (e) {
       emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  // Helper to map ReportDataFilter to ReportTimeRange for repository calls
-  ReportTimeRange _mapFilterToRange(ReportDataFilter filter) {
+  // Hàm để thay đổi bộ lọc cho biểu đồ cột
+  Future<void> changeFocusTimeChartFilter(ReportDataFilter filter) async {
+    try {
+      emit(state.copyWith(status: ReportStatus.loading, focusTimeChartFilter: filter));
+
+      final range = _getRangeFromFilter(filter);
+      final newData = await _reportRepository.getFocusTimeChartData(range as MyDateRange);
+
+      emit(state.copyWith(status: ReportStatus.success, focusTimeChartData: newData));
+    } catch (e) {
+      emit(state.copyWith(status: ReportStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  // Helper để lấy khoảng thời gian từ filter
+  DateTimeRange _getRangeFromFilter(ReportDataFilter filter) {
     switch (filter) {
-      case ReportDataFilter.today:
-        return ReportTimeRange.today;
+      case ReportDataFilter.daily:
+        return MyDateRange.getTodayRange();
       case ReportDataFilter.weekly:
-        return ReportTimeRange.thisWeek;
+        return MyDateRange.getCurrentWeekRange();
       case ReportDataFilter.biweekly:
-        return ReportTimeRange.lastTwoWeeks;
+        return MyDateRange.getPreviousTwoWeeksRange();
       case ReportDataFilter.monthly:
-        return ReportTimeRange.thisMonth;
+        return MyDateRange.getCurrentMonthRange();
+      case ReportDataFilter.yearly:
+        return MyDateRange.getCurrentYearRange();
     }
   }
-
-  // Helper for heatmap days
-  int _daysForFilter(ReportDataFilter filter) {
-    switch (filter) {
-      case ReportDataFilter.today: return 1;
-      case ReportDataFilter.weekly: return 7;
-      case ReportDataFilter.biweekly: return 14;
-      case ReportDataFilter.monthly: return 30; // Approximate
-      default: return 7;
-    }
-  }
-
-  void changeTab(ReportTab tab) {
-    emit(state.copyWith(currentTab: tab));
-    // Optionally, reload data for the new tab if it's stale or specific filters are applied
-    if (tab == ReportTab.pomodoro) {
-      loadPomodoroData();
-    } else {
-      loadTasksData();
-    }
-  }
-
-  void setPomodoroRecordFilter(ReportDataFilter filter) {
-    emit(state.copyWith(pomodoroRecordFilter: filter));
-    loadPomodoroData(recordFilter: filter); // Reload with new filter
-  }
-
-  void setFocusTimeGoalFilter(ReportDataFilter filter) {
-    emit(state.copyWith(focusTimeGoalFilter: filter));
-    loadPomodoroData(goalFilter: filter); // Reload with new filter
-  }
-
-  void setFocusTimeChartFilter(ReportDataFilter filter) {
-    emit(state.copyWith(focusTimeChartFilter: filter));
-    loadPomodoroData(chartFilter: filter); // Reload with new filter
-  }
-
-  void setFocusTimePerTaskFilter(ReportDataFilter filter) {
-    emit(state.copyWith(focusTimePerTaskFilter: filter));
-    loadTasksData(perTaskFilter: filter); // Reload with new filter
-  }
-
-  void setProjectDistributionFilter(ReportDataFilter filter) {
-    emit(state.copyWith(projectDistributionFilter: filter));
-    loadTasksData(distributionFilter: filter); // Reload with new filter
-  }
-
-  void setTaskChartFilter(ReportDataFilter filter) {
-    emit(state.copyWith(taskChartFilter: filter));
-    loadTasksData(taskChartFilterParam: filter); // Reload with new filter
-  }
-
 }
