@@ -22,11 +22,13 @@ class FocusTimeBarChart extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: BarChart(
-          BarChartData(
-            alignment: BarChartAlignment.spaceAround,
-            maxY: 7,
-            gridData: const FlGridData(show: false),
+        child: SizedBox(
+          height: 200,
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: 7,
+              gridData: const FlGridData(show: false),
             borderData: FlBorderData(
               show: true,
               border: Border(
@@ -56,6 +58,7 @@ class FocusTimeBarChart extends StatelessWidget {
             ),
             barGroups: _getBarGroups(),
           ),
+        ),
         ),
       ),
     );
