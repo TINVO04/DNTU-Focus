@@ -173,8 +173,16 @@ class TasksReportTab extends StatelessWidget {
           children: sortedTasks.map((entry) {
             final taskId = entry.key;
             final durationInSeconds = entry.value;
-            final task = state.allTasks.firstWhere((t) => t.id == taskId, orElse: () => TaskModel.empty.copyWith(id: '?', title: 'Unknown Task'));
-            final project = task.projectId != null ? state.allProjects.firstWhere((p) => p.id == task.projectId, orElse: () => ProjectModel.empty) : null;
+            final task = state.allTasks.firstWhere(
+              (t) => t.id == taskId,
+              orElse: () => Task(id: '?', title: 'Unknown Task'),
+            );
+            final project = task.projectId != null
+                ? state.allProjects.firstWhere(
+                    (p) => p.id == task.projectId,
+                    orElse: () => Project(id: '', name: 'Unknown Project', color: Colors.grey),
+                  )
+                : null;
 
             return TaskFocusListItem(
               title: task.title,

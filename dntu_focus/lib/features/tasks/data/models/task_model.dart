@@ -104,6 +104,14 @@ class Task {
     );
   }
 
+  static Task fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    if (data == null) {
+      throw Exception('Document does not exist');
+    }
+    return Task.fromJson(data, docId: doc.id);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       // Không gửi 'id' ở đây nếu bạn dùng ID của document làm ID task trên Firestore

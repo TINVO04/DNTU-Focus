@@ -34,7 +34,7 @@ class ReportRepository {
   }
 
   // Helper để lấy collection `tasks` của user hiện tại
-  CollectionReference<TaskModel> _tasksCollection() {
+  CollectionReference<Task> _tasksCollection() {
     final userId = _userId;
     if (userId == null) {
       throw Exception('User is not logged in.');
@@ -43,8 +43,8 @@ class ReportRepository {
         .collection('users')
         .doc(userId)
         .collection('tasks')
-        .withConverter<TaskModel>(
-      fromFirestore: (snapshot, _) => TaskModel.fromFirestore(snapshot),
+        .withConverter<Task>(
+      fromFirestore: (snapshot, _) => Task.fromFirestore(snapshot),
       toFirestore: (model, _) => model.toJson(),
     );
   }
