@@ -146,7 +146,6 @@ class ReportRepository {
     return Duration(seconds: total);
   }
 
-  /// Dữ liệu heatmap các phiên pomodoro
   Future<Map<DateTime, List<PomodoroSessionRecordModel>>> getPomodoroRecordsHeatmapData({
     required int daysToGoBack,
   }) async {
