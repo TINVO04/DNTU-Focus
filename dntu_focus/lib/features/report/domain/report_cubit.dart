@@ -57,19 +57,19 @@ class ReportCubit extends Cubit<ReportState> {
       emit(state.copyWith(
         status: ReportStatus.success,
         // Pomodoro
-        focusTimeToday: Duration(seconds: (results[0] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
-        focusTimeThisWeek: Duration(seconds: (results[1] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
-        focusTimeThisTwoWeeks: Duration(seconds: (results[2] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
-        focusTimeThisMonth: Duration(seconds: (results[3] as Map<String?, int>).values.fold(0, (a, b) => a + b)),
+        focusTimeToday: (results[0] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
+        focusTimeThisWeek: (results[1] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
+        focusTimeThisTwoWeeks: (results[2] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
+        focusTimeThisMonth: (results[3] as Map<String?, Duration>).values.fold(Duration.zero, (a, b) => a + b),
         // Tasks
         tasksCompletedToday: results[4] as int,
         tasksCompletedThisWeek: results[5] as int,
         tasksCompletedThisTwoWeeks: results[6] as int,
         tasksCompletedThisMonth: results[7] as int,
         // Biểu đồ và danh sách
-        projectTimeDistribution: results[8] as Map<String?, int>,
-        taskFocusTime: results[9] as Map<String, int>,
-        focusTimeChartData: results[10] as Map<DateTime, Map<String?, int>>,
+        projectTimeDistribution: results[8] as Map<String?, Duration>,
+        taskFocusTime: results[9] as Map<String, Duration>,
+        focusTimeChartData: results[10] as Map<DateTime, Map<String?, Duration>>,
         // Dữ liệu tra cứu
         allProjects: results[11] as List<Project>,
         allTasks: results[12] as List<Task>,

@@ -27,9 +27,9 @@ class ReportState extends Equatable {
   final int tasksCompletedThisMonth;
 
   // Dữ liệu cho các biểu đồ và danh sách
-  final Map<String?, int> projectTimeDistribution; // projectId -> duration
-  final Map<String, int> taskFocusTime; // taskId -> duration
-  final Map<DateTime, Map<String?, int>> focusTimeChartData; // date -> {projectId -> duration}
+  final Map<String?, Duration> projectTimeDistribution; // projectId -> duration
+  final Map<String, Duration> taskFocusTime; // taskId -> duration
+  final Map<DateTime, Map<String?, Duration>> focusTimeChartData; // date -> {projectId -> duration}
 
   // Dữ liệu thô để tra cứu tên, màu sắc...
   final List<Project> allProjects;
@@ -72,9 +72,9 @@ class ReportState extends Equatable {
     int? tasksCompletedThisWeek,
     int? tasksCompletedThisTwoWeeks,
     int? tasksCompletedThisMonth,
-    Map<String?, int>? projectTimeDistribution,
-    Map<String, int>? taskFocusTime,
-    Map<DateTime, Map<String?, int>>? focusTimeChartData,
+    Map<String?, Duration>? projectTimeDistribution,
+    Map<String, Duration>? taskFocusTime,
+    Map<DateTime, Map<String?, Duration>>? focusTimeChartData,
     List<Project>? allProjects,
     List<Task>? allTasks,
     ReportDataFilter? projectDistributionFilter,
