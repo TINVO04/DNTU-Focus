@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:moji_todo/features/tasks/data/models/project_model.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
+import 'package:moji_todo/features/report/data/models/pomodoro_session_model.dart';
 
 enum ReportStatus { initial, loading, success, failure }
 enum ReportDataFilter { daily, weekly, biweekly, monthly, yearly }
@@ -22,6 +23,8 @@ class ReportState extends Equatable {
   final Map<String?, Duration> projectTimeDistribution;
   final Map<String, Duration> taskFocusTime;
   final Map<DateTime, Map<String?, Duration>> focusTimeChartData;
+  final Map<DateTime, List<PomodoroSessionRecordModel>> pomodoroHeatmapData;
+  final Set<DateTime> focusGoalMetDays;
   final List<Project> allProjects;
   final List<Task> allTasks;
   final ReportDataFilter projectDistributionFilter;
@@ -43,6 +46,8 @@ class ReportState extends Equatable {
     this.projectTimeDistribution = const {},
     this.taskFocusTime = const {},
     this.focusTimeChartData = const {},
+    this.pomodoroHeatmapData = const {},
+    this.focusGoalMetDays = const {},
     this.allProjects = const [],
     this.allTasks = const [],
     this.projectDistributionFilter = ReportDataFilter.weekly,
@@ -65,6 +70,8 @@ class ReportState extends Equatable {
     Map<String?, Duration>? projectTimeDistribution,
     Map<String, Duration>? taskFocusTime,
     Map<DateTime, Map<String?, Duration>>? focusTimeChartData,
+    Map<DateTime, List<PomodoroSessionRecordModel>>? pomodoroHeatmapData,
+    Set<DateTime>? focusGoalMetDays,
     List<Project>? allProjects,
     List<Task>? allTasks,
     ReportDataFilter? projectDistributionFilter,
@@ -86,6 +93,8 @@ class ReportState extends Equatable {
       projectTimeDistribution: projectTimeDistribution ?? this.projectTimeDistribution,
       taskFocusTime: taskFocusTime ?? this.taskFocusTime,
       focusTimeChartData: focusTimeChartData ?? this.focusTimeChartData,
+      pomodoroHeatmapData: pomodoroHeatmapData ?? this.pomodoroHeatmapData,
+      focusGoalMetDays: focusGoalMetDays ?? this.focusGoalMetDays,
       allProjects: allProjects ?? this.allProjects,
       allTasks: allTasks ?? this.allTasks,
       projectDistributionFilter: projectDistributionFilter ?? this.projectDistributionFilter,
@@ -110,6 +119,8 @@ class ReportState extends Equatable {
     projectTimeDistribution,
     taskFocusTime,
     focusTimeChartData,
+    pomodoroHeatmapData,
+    focusGoalMetDays,
     allProjects,
     allTasks,
     projectDistributionFilter,
