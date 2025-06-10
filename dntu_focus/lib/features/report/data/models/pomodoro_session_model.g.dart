@@ -5,7 +5,7 @@ part of 'pomodoro_session_model.dart';
 PomodoroSessionRecordModel _$PomodoroSessionRecordModelFromJson(Map<String, dynamic> json) {
   return PomodoroSessionRecordModel(
     id: json['id'] as String,
-    userId: json['userId'] as String,
+    userId: json['userId'] as String?,
     startTime: const TimestampConverter().fromJson(json['startTime'] as Timestamp),
     endTime: const TimestampConverter().fromJson(json['endTime'] as Timestamp),
     duration: json['duration'] as int,
