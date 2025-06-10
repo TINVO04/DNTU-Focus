@@ -1,20 +1,45 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
 
 class ProjectDistributionChart extends StatelessWidget {
-  const ProjectDistributionChart({super.key});
+  final Map<String?, Duration> distributionData;
+  final List<Project> allProjects;
+
+  const ProjectDistributionChart({
+    super.key,
+    required this.distributionData,
+    required this.allProjects,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Dữ liệu giả
-    final Map<String, dynamic> projectData = {
-      'General': {'time': '15h 15m', 'percent': 35.0, 'color': Colors.green},
-      'Pomodoro App': {'time': '8h 5m', 'percent': 20.0, 'color': Colors.red},
-      'Flight App': {'time': '6h 10m', 'percent': 15.0, 'color': Colors.cyan},
-      'Dating App': {'time': '4h 48m', 'percent': 10.0, 'color': Colors.pink},
-      'Work Project': {'time': '4h 48m', 'percent': 12.0, 'color': Colors.orange},
-      'AI Chatbot App': {'time': '3h 12m', 'percent': 8.0, 'color': Colors.blue},
-    };
+    if (distributionData.isEmpty) {
+      return const SizedBox();
+    }
+
+    final totalSeconds =
+        distributionData.values.fold<int>(0, (a, b) => a + b.inSeconds);
+
+    final Map<String, Map<String, dynamic>> projectData = {};
+    distributionData.forEach((projectId, duration) {
+      final project = projectId != null
+          ? allProjects.firstWhere(
+              (p) => p.id == projectId,
+              orElse: () => Project(id: projectId, name: 'Unknown', color: Colors.grey),
+            )
+          : Project(id: 'general', name: 'General', color: Colors.grey);
+
+      final percent = totalSeconds > 0
+          ? duration.inSeconds / totalSeconds * 100
+          : 0.0;
+
+      projectData[project.name] = {
+        'time': _formatDuration(duration),
+        'percent': percent,
+        'color': project.color,
+      };
+    });
 
     return Card(
       elevation: 0,
@@ -31,30 +56,30 @@ class ProjectDistributionChart extends StatelessWidget {
               flex: 2,
               child: AspectRatio(
                 aspectRatio: 1,
-                child: PieChart(
-                  PieChartData(
-                      pieTouchData: PieTouchData(
-                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                          // Có thể thêm logic tương tác ở đây
-                        },
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            // Có thể thêm logic tương tác ở đây
+                          },
+                        ),
+                        borderData: FlBorderData(show: false),
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 50,
+                        sections: _getChartSections(projectData),
                       ),
-                      borderData: FlBorderData(show: false),
-                      sectionsSpace: 2, // Khoảng cách giữa các phần
-                      centerSpaceRadius: 50, // Bán kính của lỗ ở giữa (donut)
-                      sections: _getChartSections(projectData),
-                      // Hiển thị tổng thời gian ở giữa
-                      centerSpaceWidgets: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '39h 40m',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        )
-                      ]
-                  ),
+                    ),
+                    Text(
+                      _formatDuration(Duration(seconds: totalSeconds)),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -147,5 +172,19 @@ class ProjectDistributionChart extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes == 0) return '0m';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    String result = '';
+    if (hours > 0) {
+      result += '${hours}h ';
+    }
+    if (minutes > 0) {
+      result += '${minutes}m';
+    }
+    return result.trim();
   }
 }

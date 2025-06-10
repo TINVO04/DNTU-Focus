@@ -76,6 +76,7 @@ class FocusTimeBarChart extends StatelessWidget {
     // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
     // Không cần truyền `axisSide` nữa
     return SideTitleWidget(
+      meta: meta,
       space: 4,
       child: Text(text, style: style),
     );
@@ -98,6 +99,7 @@ class FocusTimeBarChart extends StatelessWidget {
     // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
     // Không cần truyền `axisSide` nữa
     return SideTitleWidget(
+      meta: meta,
       space: 8,
       child: text,
     );

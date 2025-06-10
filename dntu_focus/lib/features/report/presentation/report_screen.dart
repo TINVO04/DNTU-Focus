@@ -5,6 +5,7 @@ import 'package:moji_todo/features/report/domain/report_state.dart';
 import 'package:moji_todo/features/report/presentation/tab/pomodoro_report_tab.dart';
 import 'package:moji_todo/features/report/presentation/tab/tasks_report_tab.dart';
 import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
+import 'package:moji_todo/features/tasks/data/task_repository.dart';
 import '../data/report_repository.dart';
 
 class ReportScreen extends StatelessWidget {
@@ -15,10 +16,9 @@ class ReportScreen extends StatelessWidget {
     // Cung cấp ReportCubit cho các widget con của nó
     return BlocProvider(
       create: (context) => ReportCubit(
-        // Giả sử các repository này đã được cung cấp ở cây widget cha
-        // hoặc bạn có thể khởi tạo chúng ở đây nếu cần
         context.read<ReportRepository>(),
         context.read<ProjectTagRepository>(),
+        context.read<TaskRepository>(),
       ),
       child: DefaultTabController(
         length: 2,
