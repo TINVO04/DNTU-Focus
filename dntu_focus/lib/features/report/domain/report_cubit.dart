@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:moji_todo/core/utils/my_date_range.dart';
 import 'package:moji_todo/features/report/data/report_repository.dart';
 import 'package:moji_todo/features/report/domain/report_state.dart';
-import 'package.dart';
+import 'package:moji_todo/features/report/data/report_time_range.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
 
 class ReportCubit extends Cubit<ReportState> {
@@ -22,21 +24,29 @@ class ReportCubit extends Cubit<ReportState> {
       // Sử dụng Future.wait để tải nhiều dữ liệu cùng lúc cho hiệu quả
       final results = await Future.wait([
         // Pomodoro Stats
-        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getTodayRange()),
-        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentWeekRange()),
-        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getPreviousTwoWeeksRange()),
-        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentMonthRange()),
+        _reportRepository.getProjectTimeDistributionForRange(
+            ReportTimeRange.today),
+        _reportRepository.getProjectTimeDistributionForRange(
+            ReportTimeRange.thisWeek),
+        _reportRepository.getProjectTimeDistributionForRange(
+            ReportTimeRange.lastTwoWeeks),
+        _reportRepository.getProjectTimeDistributionForRange(
+            ReportTimeRange.thisMonth),
 
         // Task Stats
-        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getTodayRange()),
-        _report.getCompletedTasksCountForRange(MyDateRange.getCurrentWeekRange()),
-        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getPreviousTwoWeeksRange()),
-        _reportRepository.getCompletedTasksCountForRange(MyDateRange.getCurrentMonthRange()),
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today),
+        _reportRepository.getCompletedTasksCountForRange(
+            ReportTimeRange.thisWeek),
+        _reportRepository.getCompletedTasksCountForRange(
+            ReportTimeRange.lastTwoWeeks),
+        _reportRepository.getCompletedTasksCountForRange(
+            ReportTimeRange.thisMonth),
 
         // Chart and List Data (với filter mặc định)
-        _reportRepository.getProjectTimeDistributionForRange(MyDateRange.getCurrentWeekRange()),
-        _reportRepository.getTaskFocusTime(MyDateRange.getPreviousTwoWeeksRange()), // Giả sử mặc định là 2 tuần
-        _reportRepository.getFocusTimeChartData(MyDateRange.getPreviousTwoWeeksRange()),
+        _reportRepository.getProjectTimeDistributionForRange(
+            ReportTimeRange.thisWeek),
+        _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // Giả sử mặc định là 2 tuần
+        _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks),
 
         // Dữ liệu tra cứu
         _projectTagRepository.getProjects(),
@@ -76,7 +86,8 @@ class ReportCubit extends Cubit<ReportState> {
       emit(state.copyWith(status: ReportStatus.loading, projectDistributionFilter: filter));
 
       final range = _getRangeFromFilter(filter);
-      final newData = await _reportRepository.getProjectTimeDistributionForRange(range);
+      final newData =
+          await _reportRepository.getProjectTimeDistributionForRange(range);
 
       emit(state.copyWith(status: ReportStatus.success, projectTimeDistribution: newData));
     } catch (e) {
@@ -90,7 +101,7 @@ class ReportCubit extends Cubit<ReportState> {
       emit(state.copyWith(status: ReportStatus.loading, focusTimeChartFilter: filter));
 
       final range = _getRangeFromFilter(filter);
-      final newData = await _reportRepository.getFocusTimeChartData(range as MyDateRange);
+      final newData = await _reportRepository.getFocusTimeChartData(range);
 
       emit(state.copyWith(status: ReportStatus.success, focusTimeChartData: newData));
     } catch (e) {
@@ -99,18 +110,18 @@ class ReportCubit extends Cubit<ReportState> {
   }
 
   // Helper để lấy khoảng thời gian từ filter
-  DateTimeRange _getRangeFromFilter(ReportDataFilter filter) {
+  ReportTimeRange _getRangeFromFilter(ReportDataFilter filter) {
     switch (filter) {
       case ReportDataFilter.daily:
-        return MyDateRange.getTodayRange();
+        return ReportTimeRange.today;
       case ReportDataFilter.weekly:
-        return MyDateRange.getCurrentWeekRange();
+        return ReportTimeRange.thisWeek;
       case ReportDataFilter.biweekly:
-        return MyDateRange.getPreviousTwoWeeksRange();
+        return ReportTimeRange.lastTwoWeeks;
       case ReportDataFilter.monthly:
-        return MyDateRange.getCurrentMonthRange();
+        return ReportTimeRange.thisMonth;
       case ReportDataFilter.yearly:
-        return MyDateRange.getCurrentYearRange();
+        return ReportTimeRange.thisMonth;
     }
   }
 }
