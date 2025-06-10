@@ -19,7 +19,7 @@ class ProjectAdapter extends TypeAdapter<Project> {
     return Project(
       id: fields[0] as String?,
       name: fields[1] as String,
-      color: fields[2] as Color,
+      color: Color(fields[2] as int),
       isArchived: fields[3] as bool,
       iconCodePoint: fields[4] as int?,
       iconFontFamily: fields[5] as String?,
