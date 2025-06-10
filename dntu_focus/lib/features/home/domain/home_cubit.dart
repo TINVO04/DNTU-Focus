@@ -63,6 +63,22 @@ class HomeCubit extends Cubit<HomeState> {
   // NEW: StreamSubscription cho trạng thái của AudioPlayer
   StreamSubscription? _playerStateSubscription;
 
+  /// Check if white noise should play based on current settings
+  bool get _canPlayWhiteNoise =>
+      state.isWhiteNoiseEnabled &&
+      state.selectedWhiteNoise != null &&
+      state.selectedWhiteNoise != 'none';
+
+  /// Update app blocking state on the native side if needed
+  void _updateAppBlockingState() {
+    final newState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newState != _lastAppBlockingState) {
+      debugPrint('Setting app blocking enabled: $newState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {'enabled': newState});
+      _lastAppBlockingState = newState;
+    }
+  }
+
   // NEW: Hàm khởi tạo listener cho AudioPlayer
   void _initAudioPlayerListeners() {
     _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
@@ -73,11 +89,7 @@ class HomeCubit extends Cubit<HomeState> {
         print('[AudioPlayer] Playback completed. Current state: isWhiteNoiseEnabled=${state.isWhiteNoiseEnabled}, selectedWhiteNoise=${state.selectedWhiteNoise}, isTimerRunning=${state.isTimerRunning}, isPaused=${state.isPaused}');
         // Nếu ReleaseMode.loop hoạt động đúng, trạng thái này không nên xảy ra thường xuyên đối với white noise.
         // Nếu nó xảy ra, có thể thử phát lại nếu các điều kiện vẫn còn đúng.
-        if (state.isWhiteNoiseEnabled &&
-            state.selectedWhiteNoise != null &&
-            state.selectedWhiteNoise != 'none' &&
-            state.isTimerRunning &&
-            !state.isPaused) {
+        if (_canPlayWhiteNoise && state.isTimerRunning && !state.isPaused) {
           print('[AudioPlayer] Attempting to replay white noise due to completion.');
           // Cẩn trọng khi gọi _playWhiteNoise trực tiếp ở đây để tránh vòng lặp nếu lỗi từ setSource.
           // Có thể chỉ gọi _audioPlayer.resume() nếu chắc chắn source vẫn còn và hợp lệ.
@@ -398,11 +410,11 @@ class HomeCubit extends Cubit<HomeState> {
 
   void startTimer() {
     if (state.isTimerRunning && !state.isPaused) {
-      print('Timer already running, ignoring start');
+      debugPrint('Timer already running, ignoring start');
       return;
     }
     if (state.isPaused) {
-      print('Timer paused, calling continueTimer instead of startTimer.');
+      debugPrint('Timer paused, calling continueTimer instead of startTimer.');
       continueTimer();
       return;
     }
@@ -414,7 +426,7 @@ class HomeCubit extends Cubit<HomeState> {
     } else {
       timerSeconds = isWorkSessionToStart ? state.workDuration * 60 : state.breakDuration * 60;
       if (timerSeconds <= 0) {
-        print('Invalid timer duration for counting down mode');
+        debugPrint('Invalid timer duration for counting down mode');
         return;
       }
     }
@@ -430,6 +442,8 @@ class HomeCubit extends Cubit<HomeState> {
       currentSession: isWorkSessionToStart && !state.isTimerRunning && !state.isPaused ? state.currentSession + 1 : state.currentSession,
     ));
 
+    _updateAppBlockingState();
+
     _resetPreviousPomodoro();
     _updateSharedPreferences(timerSeconds, true, false, isWorkSessionToStart);
     _startTimerServiceCall(timerSeconds, true, false, state.isCountingUp, isWorkSessionToStart);
@@ -438,14 +452,14 @@ class HomeCubit extends Cubit<HomeState> {
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
     }
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none') {
+    if (_canPlayWhiteNoise) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
 
   void pauseTimer() {
     if (!state.isTimerRunning || state.isPaused) {
-      print('Timer not running or already paused, ignoring pause');
+      debugPrint('Timer not running or already paused, ignoring pause');
       return;
     }
 
@@ -473,7 +487,7 @@ class HomeCubit extends Cubit<HomeState> {
 
   void continueTimer() {
     if (state.isTimerRunning || !state.isPaused) {
-      print('Timer not paused or already running, ignoring continue');
+      debugPrint('Timer not paused or already running, ignoring continue');
       return;
     }
 
@@ -494,15 +508,8 @@ class HomeCubit extends Cubit<HomeState> {
       print('Error sending RESUME intent: $e');
     }
 
-    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none') {
+    _updateAppBlockingState();
+    if (_canPlayWhiteNoise) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
@@ -564,21 +571,14 @@ class HomeCubit extends Cubit<HomeState> {
       isExitBlockingEnabled: newExitBlockingEnabled,
     ));
 
-    final newAppBlockingState = newAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
+    _updateAppBlockingState();
 
-    if (newExitBlockingEnabled && state.isWhiteNoiseEnabled && state.isTimerRunning) {
+    if (newExitBlockingEnabled && _canPlayWhiteNoise && state.isTimerRunning) {
       if (_audioPlayer.state == PlayerState.playing) { // NEW: Check player state
         _audioPlayer.pause();
         print('[AudioPlayer] Called pause() due to Strict Mode (Exit Blocking).');
       }
-    } else if (!newExitBlockingEnabled && state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning && !state.isPaused) {
+    } else if (!newExitBlockingEnabled && _canPlayWhiteNoise && state.isTimerRunning && !state.isPaused) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
@@ -679,15 +679,8 @@ class HomeCubit extends Cubit<HomeState> {
       isWorkSession: isWorkSession ?? state.isWorkSession,
     ));
 
-    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-    if (isRunning && !isPaused && state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none') { // MODIFIED: Use direct isRunning and isPaused
+    _updateAppBlockingState();
+    if (isRunning && !isPaused && _canPlayWhiteNoise) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     } else {
       _audioPlayer.stop();
@@ -701,7 +694,7 @@ class HomeCubit extends Cubit<HomeState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(prefWhiteNoiseEnabled, enable);
 
-    if (enable && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning && !state.isPaused) {
+    if (enable && _canPlayWhiteNoise && state.isTimerRunning && !state.isPaused) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     } else {
       _audioPlayer.stop();
@@ -718,7 +711,7 @@ class HomeCubit extends Cubit<HomeState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefSelectedWhiteNoise, sound);
 
-    if (sound != 'none' && state.isWhiteNoiseEnabled && state.isTimerRunning && !state.isPaused) {
+    if (sound != 'none' && _canPlayWhiteNoise && state.isTimerRunning && !state.isPaused) {
       _playWhiteNoise(sound);
     } else {
       _audioPlayer.stop();
@@ -731,7 +724,7 @@ class HomeCubit extends Cubit<HomeState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(prefWhiteNoiseVolume, volume);
 
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning && !state.isPaused) {
+    if (_canPlayWhiteNoise && state.isTimerRunning && !state.isPaused) {
       // Chỉ gọi setVolume nếu player có khả năng đang phát hoặc sẽ phát
       // Tránh gọi setVolume trên player đã stop hoàn toàn và chưa setSource lại
       if (_audioPlayer.source != null) { // NEW: Check if source is set
