@@ -7,12 +7,14 @@ import 'package:moji_todo/features/report/data/report_time_range.dart';
 import 'package:moji_todo/features/tasks/data/models/project_model.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
+import 'package:moji_todo/features/tasks/data/task_repository.dart';
 
 class ReportCubit extends Cubit<ReportState> {
   final ReportRepository _reportRepository;
   final ProjectTagRepository _projectTagRepository;
+  final TaskRepository _taskRepository;
 
-  ReportCubit(this._reportRepository, this._projectTagRepository)
+  ReportCubit(this._reportRepository, this._projectTagRepository, this._taskRepository)
       : super(const ReportState()) {
     _loadInitialData();
   }
@@ -50,7 +52,7 @@ class ReportCubit extends Cubit<ReportState> {
 
         // Dữ liệu tra cứu
         _projectTagRepository.getProjects(),
-        _projectTagRepository.getAllTasks(),
+        _taskRepository.getTasks(),
       ]);
 
       // Gán kết quả vào state
