@@ -1,7 +1,9 @@
+import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/my_date_range.dart';
+
 enum ReportTimeRange { today, thisWeek, lastTwoWeeks, thisMonth }
 
-import '../../core/utils/date_utils.dart';
-import '../../core/utils/my_date_range.dart';
+
 
 extension ReportTimeRangeX on ReportTimeRange {
   MyDateRange get range {
