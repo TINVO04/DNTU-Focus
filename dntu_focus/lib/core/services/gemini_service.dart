@@ -60,7 +60,16 @@ Ví dụ (giả sử hôm nay là 2025-05-03):
         jsonString = jsonString.substring(0, jsonString.length - 3).trim();
       }
 
-      return jsonDecode(jsonString) as Map<String, dynamic>;
+      final Map<String, dynamic> result =
+          jsonDecode(jsonString) as Map<String, dynamic>;
+
+      // Nếu kết quả không có due_date, gán ngày hiện tại (chỉ ngày, không giờ)
+      if (result['due_date'] == null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        result['due_date'] = today.toIso8601String().split('T').first;
+      }
+      return result;
     } catch (e) {
       print('Error parsing command from Gemini API: $e');
       print('Raw response: $rawText');

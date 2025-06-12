@@ -212,7 +212,8 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                       });
                       return;
                     }
-                    final dueDate = _dueDate ?? DateTime.now();
+                    final now = DateTime.now();
+                    final dueDate = _dueDate ?? DateTime(now.year, now.month, now.day);
                     final task = Task(
                       title: _titleController.text,
                       estimatedPomodoros: _estimatedPomodoros,

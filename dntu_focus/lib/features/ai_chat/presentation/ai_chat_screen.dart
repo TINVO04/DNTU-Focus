@@ -194,11 +194,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final title = commandResult['title'] ?? '';
     final duration = commandResult['duration'];
     final breakDuration = commandResult['break_duration'];
-    final due = commandResult['due_date'];
+    final due = commandResult['due_date'] ??
+        DateTime.now().toIso8601String().split('T').first;
     final priority = commandResult['priority'];
     final summary =
         "Thêm task \"$title\"? Pomodoro: $duration phút nghỉ $breakDuration phút, "
-        "thời gian: ${due ?? 'không có'}, độ ưu tiên: ${priority ?? 'không'}."
+        "thời gian: $due, độ ưu tiên: ${priority ?? 'không'}."
         "\nGõ \"OK\" để xác nhận hoặc \"Chỉnh sửa\" để thay đổi.";
 
     setState(() {
