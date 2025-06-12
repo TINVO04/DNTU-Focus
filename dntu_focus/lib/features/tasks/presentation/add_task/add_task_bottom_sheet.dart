@@ -10,8 +10,13 @@ import 'project_picker.dart'; // Cần cập nhật file này
 
 class AddTaskBottomSheet extends StatefulWidget {
   final ProjectTagRepository repository; // repository này có thể dùng để ProjectPicker và TagsPicker lấy danh sách project/tag
+  final Map<String, dynamic>? initialTaskData;
 
-  const AddTaskBottomSheet({super.key, required this.repository});
+  const AddTaskBottomSheet({
+    super.key,
+    required this.repository,
+    this.initialTaskData,
+  });
 
   @override
   State<AddTaskBottomSheet> createState() => _AddTaskBottomSheetState();
@@ -26,6 +31,27 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
   List<String> _tagIds = [];
   String? _projectId;
   String? _titleError;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.initialTaskData;
+    if (data != null) {
+      _titleController.text = data['title'] ?? '';
+      if (data['duration'] != null) {
+        final int duration = data['duration'];
+        _estimatedPomodoros = (duration / 25).ceil();
+      }
+      if (data['due_date'] != null) {
+        try {
+          _dueDate = DateTime.parse(data['due_date']);
+        } catch (_) {}
+      }
+      if (data['priority'] != null) {
+        _priority = data['priority'];
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
