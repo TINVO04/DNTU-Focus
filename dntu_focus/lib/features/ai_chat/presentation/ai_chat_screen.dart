@@ -22,6 +22,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
   List<String> _suggestions = [];
   final GeminiService _geminiService = GeminiService();
   bool _isProcessing = false;
+  bool _awaitingConfirmation = false;
+  Map<String, dynamic>? _pendingCommand;
 
   @override
   void initState() {
@@ -49,79 +51,133 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
+  Future<String> _processCommand(Map<String, dynamic> commandResult) async {
+    final taskCubit = context.read<TaskCubit>();
+    if (commandResult['type'] == 'task') {
+      final task = Task(
+        title: commandResult['title'],
+        estimatedPomodoros: (commandResult['duration'] / 25).ceil(),
+        dueDate: commandResult['due_date'] != null
+            ? DateTime.parse(commandResult['due_date'])
+            : null,
+        priority: commandResult['priority'],
+      );
+      await taskCubit.addTask(task);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã thêm task: ${task.title}'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return 'Đã thêm task: ${task.title}';
+    } else if (commandResult['type'] == 'schedule') {
+      final task = Task(
+        title: commandResult['title'],
+        dueDate: DateTime.parse(commandResult['due_date']),
+        priority: commandResult['priority'] ?? 'Medium',
+      );
+      await taskCubit.addTask(task);
+
+      final reminderTime = DateTime.parse(commandResult['due_date'])
+          .subtract(Duration(minutes: commandResult['reminder_before']));
+      final notificationService = UnifiedNotificationService();
+      await notificationService.scheduleNotification(
+        title: 'Nhắc nhở: ${task.title}',
+        body: 'Sắp đến giờ ${task.title} vào lúc ${commandResult['due_date']}',
+        scheduledTime: reminderTime,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã lên lịch: ${task.title} vào ${task.dueDate}'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      return 'Đã lên lịch: ${task.title} vào ${task.dueDate}';
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Không hiểu câu lệnh. Vui lòng thử lại!'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return 'Không hiểu câu lệnh. Vui lòng thử lại!';
+    }
+  }
+
   Future<void> _handleMessage(String userMessage) async {
     setState(() {
       _messages.add({'role': 'user', 'content': userMessage});
       _isProcessing = true;
     });
 
-    final commandResult = await _geminiService.parseUserCommand(userMessage);
-    String response;
+    if (_awaitingConfirmation) {
+      final normalized = userMessage.toLowerCase();
+      if (normalized.contains('ok') || normalized.contains('xác nhận')) {
+        if (_pendingCommand != null) {
+          final response = await _processCommand(_pendingCommand!);
+          setState(() {
+            _messages.add({'role': 'assistant', 'content': response});
+            _isProcessing = false;
+            _awaitingConfirmation = false;
+            _pendingCommand = null;
+            _suggestions = [];
+          });
+          _loadSuggestions();
+          return;
+        }
+      } else if (normalized.contains('chỉnh') || normalized.contains('thay')) {
+        setState(() {
+          _messages.add({
+            'role': 'assistant',
+            'content': 'Hãy nhập lại thông tin task mới.',
+          });
+          _isProcessing = false;
+          _awaitingConfirmation = false;
+          _pendingCommand = null;
+          _suggestions = [];
+        });
+        _loadSuggestions();
+        return;
+      } else {
+        // Người dùng nhập câu khác khi đang chờ xác nhận
+        _awaitingConfirmation = false;
+        _pendingCommand = null;
+      }
+    }
 
+    final commandResult = await _geminiService.parseUserCommand(userMessage);
     if (commandResult.containsKey('error')) {
-      response = commandResult['error'] as String;
+      final response = commandResult['error'] as String;
+      setState(() {
+        _messages.add({'role': 'assistant', 'content': response});
+        _isProcessing = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi: $response'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
-    } else {
-      final taskCubit = context.read<TaskCubit>();
-      if (commandResult['type'] == 'task') {
-        final task = Task(
-          title: commandResult['title'],
-          estimatedPomodoros: (commandResult['duration'] / 25).ceil(),
-          dueDate: commandResult['due_date'] != null
-              ? DateTime.parse(commandResult['due_date'])
-              : null,
-          priority: commandResult['priority'],
-        );
-        taskCubit.addTask(task);
-        response = 'Đã thêm task: ${task.title}';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
-      } else if (commandResult['type'] == 'schedule') {
-        final task = Task(
-          title: commandResult['title'],
-          dueDate: DateTime.parse(commandResult['due_date']),
-          priority: commandResult['priority'] ?? 'Medium',
-        );
-        taskCubit.addTask(task);
-
-        final reminderTime = DateTime.parse(commandResult['due_date'])
-            .subtract(Duration(minutes: commandResult['reminder_before']));
-        final notificationService = UnifiedNotificationService();
-        await notificationService.scheduleNotification(
-          title: 'Nhắc nhở: ${task.title}',
-          body: 'Sắp đến giờ ${task.title} vào lúc ${commandResult['due_date']}',
-          scheduledTime: reminderTime,
-        );
-        response = 'Đã lên lịch: ${task.title} vào ${task.dueDate}';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
-      } else {
-        response = 'Không hiểu câu lệnh. Vui lòng thử lại!';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      return;
     }
 
+    _pendingCommand = commandResult;
+    _awaitingConfirmation = true;
+
+    final title = commandResult['title'] ?? '';
+    final duration = commandResult['duration'];
+    final breakDuration = commandResult['break_duration'];
+    final due = commandResult['due_date'];
+    final priority = commandResult['priority'];
+    final summary =
+        "Thêm task \"$title\"? Pomodoro: $duration phút nghỉ $breakDuration phút, "
+        "thời gian: ${due ?? 'không có'}, độ ưu tiên: ${priority ?? 'không'}."
+        "\nGõ \"OK\" để xác nhận hoặc \"Chỉnh sửa\" để thay đổi.";
+
     setState(() {
-      _messages.add({'role': 'assistant', 'content': response});
+      _messages.add({'role': 'assistant', 'content': summary});
       _isProcessing = false;
+      _suggestions = ['OK', 'Chỉnh sửa'];
     });
   }
 
@@ -177,9 +233,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   height: 50,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _suggestions.length + 1,
+                    itemCount: _awaitingConfirmation ? _suggestions.length : _suggestions.length + 1,
                     itemBuilder: (context, index) {
-                      if (index == 0) {
+                      if (!_awaitingConfirmation && index == 0) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 5),
                           child: ActionChip(
@@ -202,13 +258,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 5),
                         child: ActionChip(
                           label: Text(
-                            _suggestions[index - 1],
+                            _awaitingConfirmation ? _suggestions[index] : _suggestions[index - 1],
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           backgroundColor: Theme.of(context).colorScheme.surface,
                           labelStyle: Theme.of(context).textTheme.bodyMedium,
                           onPressed: () async {
-                            await _handleMessage(_suggestions[index - 1]);
+                            await _handleMessage(
+                              _awaitingConfirmation ? _suggestions[index] : _suggestions[index - 1],
+                            );
                           },
                         ),
                       );
