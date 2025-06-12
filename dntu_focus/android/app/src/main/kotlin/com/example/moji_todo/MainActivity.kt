@@ -184,7 +184,11 @@ class MainActivity : FlutterActivity() {
                         }
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent)
+                            if (serviceIntent.action == TimerService.ACTION_STOP) {
+                                startService(serviceIntent)
+                            } else {
+                                startForegroundService(serviceIntent)
+                            }
                         } else {
                             startService(serviceIntent)
                         }
@@ -216,7 +220,11 @@ class MainActivity : FlutterActivity() {
                         }
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(intent)
+                            if (call.method == TimerService.ACTION_STOP) {
+                                startService(intent)
+                            } else {
+                                startForegroundService(intent)
+                            }
                         } else {
                             startService(intent)
                         }
@@ -280,7 +288,11 @@ class MainActivity : FlutterActivity() {
                         }
 
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent)
+                            if (serviceIntent.action == TimerService.ACTION_STOP) {
+                                startService(serviceIntent)
+                            } else {
+                                startForegroundService(serviceIntent)
+                            }
                         } else {
                             startService(serviceIntent)
                         }
@@ -459,7 +471,11 @@ class MainActivity : FlutterActivity() {
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
+                if (serviceIntent.action == TimerService.ACTION_STOP) {
+                    startService(serviceIntent)
+                } else {
+                    startForegroundService(serviceIntent)
+                }
             } else {
                 startService(serviceIntent)
             }
