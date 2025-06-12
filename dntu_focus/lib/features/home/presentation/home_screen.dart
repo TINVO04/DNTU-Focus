@@ -131,45 +131,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   mainAxisAlignment: MainAxisAlignment.start, // Dồn lên trên
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Cụm 1: Select Task
-                    GestureDetector(
-                      onTap: () => _showTaskBottomSheet(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.15)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-                              blurRadius: 6,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                state.selectedTask ?? 'Chọn Task',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: state.selectedTask != null
-                                      ? Theme.of(context).textTheme.bodyLarge?.color
-                                      : Theme.of(context).hintColor,
-                                  fontSize: selectTaskFontSize,
+                    // Cụm 1: Select Task with action buttons
+                    Row(
+                      children: [
+                        if (state.selectedTask != null)
+                          IconButton(
+                            icon: const Icon(Icons.check_circle_outline),
+                            tooltip: 'Hoàn thành',
+                            onPressed: () {
+                              final taskCubit = context.read<TaskCubit>();
+                              Task? taskToComplete;
+                              try {
+                                taskToComplete = taskCubit.state.tasks.firstWhere(
+                                  (t) => t.title == state.selectedTask,
+                                );
+                              } catch (_) {}
+
+                              if (taskToComplete != null) {
+                                taskCubit.updateTask(taskToComplete.copyWith(isCompleted: true));
+                              }
+                              context.read<HomeCubit>().resetTask();
+                            },
+                          ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _showTaskBottomSheet(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardTheme.color,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
                                 ),
-                                overflow: TextOverflow.ellipsis,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      state.selectedTask ?? 'Chọn Task',
+                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        color: state.selectedTask != null
+                                            ? Theme.of(context).textTheme.bodyLarge?.color
+                                            : Theme.of(context).hintColor,
+                                        fontSize: selectTaskFontSize,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Theme.of(context).iconTheme.color?.withOpacity(0.7),
+                                  ),
+                                ],
                               ),
                             ),
-                            Icon(
-                              Icons.arrow_drop_down,
-                              color: Theme.of(context).iconTheme.color?.withOpacity(0.7),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        if (state.selectedTask != null)
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Bỏ chọn',
+                            onPressed: () {
+                              context.read<HomeCubit>().resetTask();
+                            },
+                          ),
+                      ],
                     ),
                     // Sử dụng Spacer với flex nhỏ hơn để đẩy PomodoroTimer xuống một chút,
                     // nhưng không chiếm quá nhiều không gian như trước.
