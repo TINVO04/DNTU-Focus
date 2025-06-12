@@ -5,15 +5,13 @@ import 'package:moji_todo/features/tasks/presentation/add_project_and_tags/add_t
 import '../../data/models/project_tag_repository.dart';
 
 class TagsPicker extends StatefulWidget {
-  // MODIFIED: Đổi tên và kiểu dữ liệu
   final List<String> initialTagIds;
   final ProjectTagRepository repository;
-  // MODIFIED: Kiểu dữ liệu của callback
   final ValueChanged<List<String>> onTagsSelected;
 
   const TagsPicker({
     super.key,
-    required this.initialTagIds, // MODIFIED
+    required this.initialTagIds,
     required this.repository,
     required this.onTagsSelected,
   });
@@ -23,17 +21,14 @@ class TagsPicker extends StatefulWidget {
 }
 
 class _TagsPickerState extends State<TagsPicker> {
-  // MODIFIED: Đổi tên biến state
   late List<String> selectedTagIds;
 
   @override
   void initState() {
     super.initState();
-    // MODIFIED: Khởi tạo bằng initialTagIds
     selectedTagIds = List.from(widget.initialTagIds);
   }
 
-  // MODIFIED: Hàm này giờ làm việc với tagId
   void _updateTags(String tagId) {
     setState(() {
       if (selectedTagIds.contains(tagId)) {
@@ -58,7 +53,7 @@ class _TagsPickerState extends State<TagsPicker> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Tags',
+                  'Thẻ',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
@@ -94,7 +89,6 @@ class _TagsPickerState extends State<TagsPicker> {
                     itemCount: availableTags.length,
                     itemBuilder: (context, index) {
                       final tag = availableTags[index];
-                      // MODIFIED: So sánh bằng tag.id
                       final isSelected = selectedTagIds.contains(tag.id);
                       return ListTile(
                         leading: Icon(
@@ -105,7 +99,6 @@ class _TagsPickerState extends State<TagsPicker> {
                         title: Text(tag.name),
                         trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
                         onTap: () {
-                          // MODIFIED: Truyền tag.id vào _updateTags
                           _updateTags(tag.id);
                         },
                       );
@@ -131,7 +124,7 @@ class _TagsPickerState extends State<TagsPicker> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: const Text(
-                        'Cancel',
+                        'Hủy',
                         style: TextStyle(color: Colors.black),
                       ),
                     ),
@@ -142,7 +135,6 @@ class _TagsPickerState extends State<TagsPicker> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        // Callback đã được gọi mỗi khi chọn, nên chỉ cần pop
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
@@ -153,7 +145,7 @@ class _TagsPickerState extends State<TagsPicker> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('OK'),
+                      child: const Text('Đồng ý'),
                     ),
                   ),
                 ),

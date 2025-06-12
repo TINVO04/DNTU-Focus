@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../../../core/services/firebase_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
+import '../domain/auth_cubit.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,50 +12,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final FirebaseService _firebaseService = FirebaseService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
   bool _acceptTerms = false;
-  String? _errorMessage;
-
-  Future<void> _register() async {
-    if (!_acceptTerms) {
-      setState(() {
-        _errorMessage = 'Please accept the Terms & Conditions';
-      });
-      return;
-    }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMessage = 'Passwords do not match';
-      });
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    try {
-      await _firebaseService.signUpWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -64,145 +27,258 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Hàm xử lý đăng ký, giờ sẽ gọi Cubit
+  void _onRegisterPressed() {
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the Terms & Conditions.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Gọi phương thức từ AuthCubit
+    context.read<AuthCubit>().signUpWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFE6F7FA),
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 60),
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
-                  ).createShader(bounds),
-                  child: const Text(
-                    'Moji-ToDo',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: BlocConsumer<AuthCubit, AuthState>(
+              listener: (context, state) {
+                if (state is AuthAuthenticated) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      Navigator.pushReplacementNamed(context, AppRoutes.home);
+                    }
+                  });
+                } else if (state is AuthError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: colorScheme.error,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFFFE6E6),
-                    hintText: 'Enter your email',
-                    prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFFFE6E6),
-                    hintText: 'Enter your username',
-                    prefixIcon: const Icon(Icons.person),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFFFE6E6),
-                    hintText: 'Enter your password',
-                    prefixIcon: const Icon(Icons.lock),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _confirmPasswordController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFFFE6E6),
-                    hintText: 'Confirm Password',
-                    prefixIcon: const Icon(Icons.lock),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 16),
-                Row(
+                  );
+                }
+              },
+              builder: (context, state) {
+                final bool isLoading = state is AuthLoading;
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Checkbox(
-                      value: _acceptTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptTerms = value ?? false;
-                        });
-                      },
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'I accept Terms & Conditions and Privacy Policy',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    ),
+                    _buildHeader(textTheme),
+                    const SizedBox(height: 32),
+                    _buildEmailField(isLoading),
+                    const SizedBox(height: 16),
+                    _buildUsernameField(isLoading),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(isLoading),
+                    const SizedBox(height: 16),
+                    _buildConfirmPasswordField(isLoading),
+                    const SizedBox(height: 24),
+                    _buildTermsCheckbox(),
+                    const SizedBox(height: 24),
+                    if (isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      _buildSignUpButton(),
+                    const SizedBox(height: 32),
+                    _buildSignInNavigation(context, isLoading, textTheme),
                   ],
-                ),
-                const SizedBox(height: 16),
-                if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- CÁC HÀM BUILD UI CHUYÊN NGHIỆP ---
+
+  Widget _buildHeader(TextTheme textTheme) {
+    return Column(
+      children: [
+        // Dùng lại logo và style tương tự trang Login
+        Image.asset(
+          'assets/images/logo_moji.png',
+          height: 80,
+          width: 80,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Create Account',
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Start your productive journey today!',
+          style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailField(bool isLoading) {
+    return TextField(
+      controller: _emailController,
+      decoration: InputDecoration(
+        hintText: 'Email',
+        prefixIcon: const Icon(Icons.email_outlined),
+        filled: true,
+        fillColor: Colors.grey.shade200,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      keyboardType: TextInputType.emailAddress,
+      enabled: !isLoading,
+    );
+  }
+
+  Widget _buildUsernameField(bool isLoading) {
+    return TextField(
+      controller: _usernameController,
+      decoration: InputDecoration(
+        hintText: 'Username',
+        prefixIcon: const Icon(Icons.person_outline),
+        filled: true,
+        fillColor: Colors.grey.shade200,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      enabled: !isLoading,
+    );
+  }
+
+  Widget _buildPasswordField(bool isLoading) {
+    return TextField(
+      controller: _passwordController,
+      decoration: InputDecoration(
+        hintText: 'Password',
+        prefixIcon: const Icon(Icons.lock_outline),
+        filled: true,
+        fillColor: Colors.grey.shade200,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      obscureText: true,
+      enabled: !isLoading,
+    );
+  }
+
+  Widget _buildConfirmPasswordField(bool isLoading) {
+    return TextField(
+      controller: _confirmPasswordController,
+      decoration: InputDecoration(
+        hintText: 'Confirm Password',
+        prefixIcon: const Icon(Icons.lock_outline),
+        filled: true,
+        fillColor: Colors.grey.shade200,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      obscureText: true,
+      enabled: !isLoading,
+    );
+  }
+
+  Widget _buildTermsCheckbox() {
+    return Row(
+      children: [
+        Checkbox(
+          value: _acceptTerms,
+          onChanged: (value) {
+            setState(() {
+              _acceptTerms = value ?? false;
+            });
+          },
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: 'I agree to the ',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              children: [
+                TextSpan(
+                  text: 'Terms & Conditions',
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
                   ),
-                const SizedBox(height: 16),
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Create Account'),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, AppRoutes.login);
+                  recognizer: TapGestureRecognizer()..onTap = () {
+                    // TODO: Mở link đến trang Terms
+                    print('Navigate to Terms & Conditions');
                   },
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(color: Color(0xFF00C4FF)),
-                  ),
                 ),
               ],
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildSignUpButton() {
+    return ElevatedButton(
+      onPressed: _onRegisterPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.red.shade400,
+        foregroundColor: Colors.white,
       ),
+      child: const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildSignInNavigation(BuildContext context, bool isLoading, TextTheme textTheme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text("Already have an account?", style: textTheme.bodyMedium),
+        TextButton(
+          onPressed: isLoading ? null : () => Navigator.pop(context), // Quay lại màn hình trước đó
+          child: Text(
+            'Log In',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade400,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

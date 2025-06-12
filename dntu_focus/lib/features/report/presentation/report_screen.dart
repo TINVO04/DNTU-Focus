@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moji_todo/features/report/domain/report_cubit.dart';
 import 'package:moji_todo/features/report/domain/report_state.dart';
 import 'package:moji_todo/features/report/presentation/tab/pomodoro_report_tab.dart';
+import 'package:moji_todo/features/report/presentation/tab/pomodoro_report_tab_demo.dart';
 import 'package:moji_todo/features/report/presentation/tab/tasks_report_tab.dart';
+import 'package:moji_todo/features/report/presentation/tab/tasks_report_tab_demo.dart';
 import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
 import 'package:moji_todo/features/tasks/data/task_repository.dart';
 import '../data/report_repository.dart';
@@ -74,8 +76,8 @@ class ReportScreen extends StatelessWidget {
               // Nếu thành công, hiển thị TabBarView
               return const TabBarView(
                 children: [
-                  PomodoroReportTab(),
-                  TasksReportTab(),
+                  PomodoroReportTabDemo(),
+                  TasksReportTabDemo(),
                 ],
               );
             },

@@ -13,7 +13,7 @@ class TasksReportTab extends StatelessWidget {
   const TasksReportTab({super.key});
 
   String _formatDuration(Duration duration) {
-    if (duration.inMinutes == 0) return '0m';
+    if (duration.inMinutes < 1) return '0m';
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     String result = '';
@@ -28,71 +28,102 @@ class TasksReportTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<ReportCubit>().state;
-    final cubit = context.read<ReportCubit>();
+    return BlocBuilder<ReportCubit, ReportState>(
+      builder: (context, state) {
+        final cubit = context.read<ReportCubit>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSummaryCards(state),
-          const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Focus Time', filterText: 'Tasks'),
-          const SizedBox(height: 16),
-          _buildTaskFocusList(state),
-          const SizedBox(height: 24),
-          _buildSectionHeader(
-            context,
-            title: 'Project Time Distribution',
-            filterWidget: _buildFilterDropdown(
-              context,
-              value: state.projectDistributionFilter,
-              onChanged: (filter) {
-                if (filter != null) {
-                  cubit.changeProjectDistributionFilter(filter);
-                }
-              },
-            ),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSummaryCards(context, state), // Đã được sửa để dùng Wrap
+              const SizedBox(height: 24),
+              _buildSectionHeader(context, title: 'Focus Time by Task'),
+              const SizedBox(height: 16),
+              _buildTaskFocusList(state),
+              const SizedBox(height: 24),
+              _buildSectionHeader(
+                context,
+                title: 'Project Time Distribution',
+                filterWidget: _buildFilterDropdown(
+                  context,
+                  value: state.projectDistributionFilter,
+                  onChanged: (filter) {
+                    if (filter != null) {
+                      cubit.changeProjectDistributionFilter(filter);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              ProjectDistributionChart(
+                distributionData: state.projectTimeDistribution,
+                allProjects: state.allProjects,
+              ),
+              const SizedBox(height: 24),
+              _buildSectionHeader(
+                context,
+                title: 'Focus Time Chart',
+                filterWidget: _buildFilterDropdown(
+                  context,
+                  value: state.focusTimeChartFilter,
+                  onChanged: (filter) {
+                    if (filter != null) {
+                      cubit.changeFocusTimeChartFilter(filter);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              FocusTimeBarChart(
+                chartData: state.focusTimeChartData,
+                allProjects: state.allProjects,
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          ProjectDistributionChart(
-            distributionData: state.projectTimeDistribution,
-            allProjects: state.allProjects,
-          ),
-          const SizedBox(height: 24),
-          _buildSectionHeader(context, title: 'Task Chart', filterText: 'Biweekly'),
-          const SizedBox(height: 16),
-          FocusTimeBarChart(
-            chartData: state.focusTimeChartData,
-            allProjects: state.allProjects,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSummaryCards(ReportState state) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.8,
-      children: [
-        // ===== SỬA LỖI: Chỉ giữ lại 4 thẻ để phù hợp với layout 2 cột =====
-        SummaryCard(value: state.tasksCompletedToday.toString(), label: 'Task Completed Today'),
-        SummaryCard(value: state.tasksCompletedThisWeek.toString(), label: 'Task Completed This Week'),
-        SummaryCard(value: state.tasksCompletedThisTwoWeeks.toString(), label: 'Task Completed This Two...'),
-        SummaryCard(value: state.tasksCompletedThisMonth.toString(), label: 'Task Completed This Month'),
-        // Bỏ thẻ "This Year" đi để tránh làm vỡ layout
-        // SummaryCard(value: state.tasksCompletedThisYear.toString(), label: 'Task Completed This Year'),
-      ],
+  // ===== SỬA LỖI: THAY THẾ GRIDVIEW BẰNG WRAP =====
+  Widget _buildSummaryCards(BuildContext context, ReportState state) {
+    // Lấy chiều rộng màn hình để tính toán chiều rộng cho mỗi card
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Tổng padding ngang của màn hình là 16*2=32. Khoảng cách giữa 2 card là 16.
+    // Vậy chiều rộng mỗi card = (rộng màn hình - padding - khoảng cách) / 2
+    final cardWidth = (screenWidth - 32 - 16) / 2;
+
+    final List<Widget> cards = [
+      SummaryCard(
+          value: state.tasksCompletedToday.toString(),
+          label: 'Tasks Completed Today'),
+      SummaryCard(
+          value: state.tasksCompletedThisWeek.toString(),
+          label: 'Tasks This Week'),
+      SummaryCard(
+          value: state.tasksCompletedThisMonth.toString(),
+          label: 'Tasks This Month'),
+      SummaryCard(
+          value: state.tasksCompletedThisYear.toString(),
+          label: 'Tasks This Year'),
+    ];
+
+    return Wrap(
+      spacing: 16, // Khoảng cách theo chiều ngang
+      runSpacing: 16, // Khoảng cách theo chiều dọc khi xuống dòng
+      children: cards.map((card) {
+        return SizedBox(
+          width: cardWidth,
+          child: card,
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, {required String title, String? filterText, Widget? filterWidget}) {
+  Widget _buildSectionHeader(BuildContext context,
+      {required String title, Widget? filterWidget}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -100,51 +131,45 @@ class TasksReportTab extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        filterWidget ??
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  Text(filterText ?? '', style: TextStyle(color: Colors.grey.shade700)),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                ],
-              ),
-            )
+        if (filterWidget != null) filterWidget,
       ],
     );
   }
 
   Widget _buildFilterDropdown(BuildContext context,
-      {required ReportDataFilter value, required void Function(ReportDataFilter?) onChanged}) {
+      {required ReportDataFilter value,
+        required void Function(ReportDataFilter?) onChanged}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: DropdownButton<ReportDataFilter>(
-        value: value,
-        underline: const SizedBox.shrink(),
-        items: ReportDataFilter.values.map((ReportDataFilter filter) {
-          return DropdownMenuItem<ReportDataFilter>(
-            value: filter,
-            child: Text(filter.name[0].toUpperCase() + filter.name.substring(1)),
-          );
-        }).toList(),
-        onChanged: onChanged,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ReportDataFilter>(
+          value: value,
+          items: ReportDataFilter.values.map((ReportDataFilter filter) {
+            final filterName =
+                filter.name[0].toUpperCase() + filter.name.substring(1);
+            return DropdownMenuItem<ReportDataFilter>(
+              value: filter,
+              child: Text(filterName),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
 
   Widget _buildTaskFocusList(ReportState state) {
     if (state.taskFocusTime.isEmpty) {
-      return const Card(
+      return Card(
         elevation: 0,
-        child: Padding(
+        shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12)),
+        child: const Padding(
           padding: EdgeInsets.all(24.0),
           child: Center(child: Text("No focused tasks in this period.")),
         ),
@@ -163,7 +188,7 @@ class TasksReportTab extends StatelessWidget {
         side: BorderSide(color: Colors.grey.shade300),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Column(
           children: sortedTasks.map((entry) {
             final taskId = entry.key;
@@ -175,7 +200,8 @@ class TasksReportTab extends StatelessWidget {
             final project = task.projectId != null
                 ? state.allProjects.firstWhere(
                   (p) => p.id == task.projectId,
-              orElse: () => Project(id: '', name: 'Unknown Project', color: Colors.grey),
+              orElse: () =>
+                  Project(id: '', name: 'Unknown', color: Colors.grey),
             )
                 : null;
 

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/project_tag_repository.dart';
-import '../../data/models/task_model.dart'; // Đảm bảo TaskModel đã được cập nhật
+import '../../data/models/task_model.dart';
 import '../../domain/task_cubit.dart';
 import 'due_date_picker.dart';
 import 'priority_picker.dart';
-import 'tags_picker.dart';    // Cần cập nhật file này
-import 'project_picker.dart'; // Cần cập nhật file này
+import 'tags_picker.dart';
+import 'project_picker.dart';
 
 class AddTaskBottomSheet extends StatefulWidget {
-  final ProjectTagRepository repository; // repository này có thể dùng để ProjectPicker và TagsPicker lấy danh sách project/tag
+  final ProjectTagRepository repository;
   final Map<String, dynamic>? initialTaskData;
 
   const AddTaskBottomSheet({
@@ -27,7 +27,6 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
   int _estimatedPomodoros = 1;
   DateTime? _dueDate;
   String? _priority;
-  // MODIFIED: Thay đổi để lưu trữ IDs
   List<String> _tagIds = [];
   String? _projectId;
   String? _titleError;
@@ -69,7 +68,7 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
-                hintText: 'Add a Task...',
+                hintText: 'Thêm nhiệm vụ...',
                 border: InputBorder.none,
                 errorText: _titleError,
                 errorStyle: const TextStyle(color: Colors.red),
@@ -84,7 +83,7 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Estimated Pomodoros',
+              'Số Pomodoro dự kiến',
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -164,18 +163,16 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                     IconButton(
                       icon: Icon(
                         Icons.local_offer,
-                        // MODIFIED: Điều kiện màu dựa trên _tagIds
                         color: _tagIds.isNotEmpty ? Colors.blue : Colors.grey,
                       ),
                       onPressed: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
-                          // MODIFIED: Truyền initialTagIds và nhận lại selectedTagIds
                           builder: (context) => TagsPicker(
-                            initialTagIds: _tagIds, // Truyền ID
-                            repository: widget.repository, // Repository để lấy danh sách tags với ID
-                            onTagsSelected: (selectedTagIds) { // Nhận lại danh sách ID
+                            initialTagIds: _tagIds,
+                            repository: widget.repository,
+                            onTagsSelected: (selectedTagIds) {
                               setState(() {
                                 _tagIds = selectedTagIds;
                               });
@@ -187,18 +184,16 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                     IconButton(
                       icon: Icon(
                         Icons.work,
-                        // MODIFIED: Điều kiện màu dựa trên _projectId
                         color: _projectId != null ? Colors.red : Colors.grey,
                       ),
                       onPressed: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
-                          // MODIFIED: Truyền initialProjectId và nhận lại selectedProjectId
                           builder: (context) => ProjectPicker(
-                            initialProjectId: _projectId, // Truyền ID
-                            repository: widget.repository, // Repository để lấy danh sách projects với ID
-                            onProjectSelected: (selectedProjectId) { // Nhận lại ID
+                            initialProjectId: _projectId,
+                            repository: widget.repository,
+                            onProjectSelected: (selectedProjectId) {
                               setState(() {
                                 _projectId = selectedProjectId;
                               });
@@ -213,24 +208,21 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                   onPressed: () {
                     if (_titleController.text.isEmpty) {
                       setState(() {
-                        _titleError = 'Vui lòng nhập tên task!';
+                        _titleError = 'Vui lòng nhập tên nhiệm vụ!';
                       });
                       return;
                     }
                     final dueDate = _dueDate ?? DateTime.now();
                     final task = Task(
-                      // id sẽ được gán trong TaskRepository hoặc TaskCubit
                       title: _titleController.text,
                       estimatedPomodoros: _estimatedPomodoros,
                       completedPomodoros: 0,
                       dueDate: dueDate,
                       priority: _priority,
-                      // MODIFIED: Sử dụng IDs
-                      tagIds: _tagIds.isNotEmpty ? _tagIds : null, // Gửi null nếu rỗng, hoặc [] tùy theo model
+                      tagIds: _tagIds.isNotEmpty ? _tagIds : null,
                       projectId: _projectId,
                       isCompleted: false,
                       createdAt: DateTime.now(),
-                      // completionDate sẽ là null cho task mới
                     );
                     context.read<TaskCubit>().addTask(task);
                     Navigator.pop(context, task);
@@ -242,7 +234,7 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text('Add'),
+                  child: const Text('Thêm'),
                 ),
               ],
             ),

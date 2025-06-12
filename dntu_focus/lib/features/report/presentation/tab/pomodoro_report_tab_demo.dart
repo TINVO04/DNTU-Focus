@@ -1,97 +1,157 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:moji_todo/features/report/domain/report_cubit.dart';
 import 'package:moji_todo/features/report/domain/report_state.dart';
-import 'package:table_calendar/table_calendar.dart';
-
-// Import các widget con
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
+import 'package:moji_todo/features/report/data/models/pomodoro_session_model.dart';
 import '../widgets/focus_time_bar_chart.dart';
 import '../widgets/pomodoro_records_chart.dart';
 import '../widgets/summary_card.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 
-class PomodoroReportTab extends StatelessWidget {
-  const PomodoroReportTab({super.key});
+class PomodoroReportTabDemo extends StatelessWidget {
+  const PomodoroReportTabDemo({super.key});
+
+  // Hàm tạo dữ liệu mẫu
+  ReportState getDemoReportState() {
+    final now = DateTime.now();
+    final projects = [
+      Project(id: 'proj1', name: 'Phát triển ứng dụng', color: Colors.blue),
+      Project(id: 'proj2', name: 'Học tập', color: Colors.green),
+      Project(id: 'proj3', name: 'Cá nhân', color: Colors.orange),
+    ];
+
+    final tasks = [
+      Task(id: 'task1', title: 'Thiết kế giao diện', projectId: 'proj1'),
+      Task(id: 'task2', title: 'Học Flutter', projectId: 'proj2'),
+      Task(id: 'task3', title: 'Lên kế hoạch tập gym', projectId: 'proj3'),
+    ];
+
+    final pomodoroHeatmapData = {
+      DateTime(now.year, now.month, now.day): [
+        PomodoroSessionRecordModel(
+          id: '1',
+          startTime: DateTime(now.year, now.month, now.day, 9, 0),
+          endTime: DateTime(now.year, now.month, now.day, 9, 25),
+          duration: 25 * 60,
+          isWorkSession: true,
+          projectId: 'proj1',
+          taskId: 'task1',
+        ),
+        PomodoroSessionRecordModel(
+          id: '2',
+          startTime: DateTime(now.year, now.month, now.day, 10, 0),
+          endTime: DateTime(now.year, now.month, now.day, 10, 25),
+          duration: 25 * 60,
+          isWorkSession: true,
+          projectId: 'proj2',
+          taskId: 'task2',
+        ),
+      ],
+      DateTime(now.year, now.month, now.day - 1): [
+        PomodoroSessionRecordModel(
+          id: '3',
+          startTime: DateTime(now.year, now.month, now.day - 1, 14, 0),
+          endTime: DateTime(now.year, now.month, now.day - 1, 14, 25),
+          duration: 25 * 60,
+          isWorkSession: true,
+          projectId: 'proj3',
+          taskId: 'task3',
+        ),
+      ],
+    };
+
+    final focusTimeChartData = {
+      DateTime(now.year, now.month, now.day): {
+        'proj1': Duration(hours: 2),
+        'proj2': Duration(hours: 1),
+        'proj3': Duration(minutes: 30),
+      },
+      DateTime(now.year, now.month, now.day - 1): {
+        'proj1': Duration(hours: 1),
+        'proj2': Duration(hours: 2),
+      },
+      DateTime(now.year, now.month, now.day - 2): {
+        'proj3': Duration(hours: 1, minutes: 15),
+      },
+    };
+
+    return ReportState(
+      status: ReportStatus.success,
+      focusTimeToday: Duration(hours: 3, minutes: 30),
+      focusTimeThisWeek: Duration(hours: 20),
+      focusTimeThisTwoWeeks: Duration(hours: 35),
+      focusTimeThisMonth: Duration(hours: 80),
+      allProjects: projects,
+      allTasks: tasks,
+      pomodoroHeatmapData: pomodoroHeatmapData,
+      focusTimeChartData: focusTimeChartData,
+      focusGoalMetDays: {
+        DateTime(now.year, now.month, now.day),
+        DateTime(now.year, now.month, now.day - 2),
+      },
+      focusTimeChartFilter: ReportDataFilter.biweekly,
+    );
+  }
 
   String _formatDuration(Duration duration) {
-    if (duration.inMinutes < 1) return '0m';
+    if (duration.inMinutes < 1) return '0p';
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     String result = '';
-    if (hours > 0) {
-      result += '${hours}h ';
-    }
-    if (minutes > 0) {
-      result += '${minutes}m';
-    }
+    if (hours > 0) result += '${hours}g ';
+    if (minutes > 0) result += '${minutes}p';
     return result.trim();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ReportCubit, ReportState>(
-      builder: (context, state) {
-        if (state.status == ReportStatus.loading && state.focusTimeToday == Duration.zero) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (state.status == ReportStatus.failure) {
-          return Center(child: Text(state.errorMessage ?? 'Failed to load data.'));
-        }
+    final state = getDemoReportState();
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSummaryCards(context, state),
-              const SizedBox(height: 24),
-              _buildPomodoroRecords(context, state),
-              const SizedBox(height: 24),
-              _buildFocusGoal(context, state),
-              const SizedBox(height: 24),
-              _buildFocusTimeChart(context, state),
-            ],
-          ),
-        );
-      },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSummaryCards(context, state),
+          const SizedBox(height: 24),
+          _buildPomodoroRecords(context, state),
+          const SizedBox(height: 24),
+          _buildFocusGoal(context, state),
+          const SizedBox(height: 24),
+          _buildFocusTimeChart(context, state),
+        ],
+      ),
     );
   }
 
-  // ===== SỬA LỖI: THAY THẾ GRIDVIEW BẰNG WRAP =====
   Widget _buildSummaryCards(BuildContext context, ReportState state) {
-    // Lấy chiều rộng màn hình để tính toán chiều rộng cho mỗi card
     final screenWidth = MediaQuery.of(context).size.width;
-    // Tổng padding ngang của màn hình là 16*2=32. Khoảng cách giữa 2 card là 16.
-    // Vậy chiều rộng mỗi card = (rộng màn hình - padding - khoảng cách) / 2
     final cardWidth = (screenWidth - 32 - 16) / 2;
 
-    final List<Widget> cards = [
+    final cards = [
       SummaryCard(
         value: _formatDuration(state.focusTimeToday),
-        label: 'Focus Time Today',
+        label: 'Thời gian tập trung hôm nay',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisWeek),
-        label: 'Focus Time This Week',
+        label: 'Thời gian tập trung tuần này',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisTwoWeeks),
-        label: 'Focus Time This Two Weeks',
+        label: 'Thời gian tập trung 2 tuần',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisMonth),
-        label: 'Focus Time This Month',
+        label: 'Thời gian tập trung tháng này',
       ),
     ];
 
     return Wrap(
-      spacing: 16, // Khoảng cách theo chiều ngang
-      runSpacing: 16, // Khoảng cách theo chiều dọc khi xuống dòng
-      children: cards.map((card) {
-        return SizedBox(
-          width: cardWidth,
-          child: card,
-        );
-      }).toList(),
+      spacing: 16,
+      runSpacing: 16,
+      children: cards.map((card) => SizedBox(width: cardWidth, child: card)).toList(),
     );
   }
 
@@ -101,7 +161,7 @@ class PomodoroReportTab extends StatelessWidget {
       children: [
         _buildSectionHeader(
           context,
-          title: 'Pomodoro Records',
+          title: 'Lịch sử Pomodoro',
           filterWidget: _buildFilterDropdown(
             context,
             value: ReportDataFilter.weekly,
@@ -133,7 +193,7 @@ class PomodoroReportTab extends StatelessWidget {
       children: [
         _buildSectionHeader(
           context,
-          title: 'Focus Time Goal',
+          title: 'Mục tiêu tập trung',
           filterWidget: _buildFilterDropdown(
             context,
             value: ReportDataFilter.monthly,
@@ -165,10 +225,7 @@ class PomodoroReportTab extends StatelessWidget {
                     return Container(
                       margin: const EdgeInsets.all(5.0),
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.8),
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: Colors.red.withOpacity(0.8), width: 1.5),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -210,15 +267,11 @@ class PomodoroReportTab extends StatelessWidget {
       children: [
         _buildSectionHeader(
           context,
-          title: 'Focus Time Chart',
+          title: 'Biểu đồ thời gian tập trung',
           filterWidget: _buildFilterDropdown(
             context,
             value: state.focusTimeChartFilter,
-            onChanged: (filter) {
-              if (filter != null) {
-                context.read<ReportCubit>().changeFocusTimeChartFilter(filter);
-              }
-            },
+            onChanged: (filter) {},
           ),
         ),
         const SizedBox(height: 16),
@@ -234,10 +287,7 @@ class PomodoroReportTab extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         if (filterWidget != null) filterWidget,
       ],
     );
@@ -254,8 +304,25 @@ class PomodoroReportTab extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<ReportDataFilter>(
           value: value,
-          items: ReportDataFilter.values.map((ReportDataFilter filter) {
-            final filterName = filter.name[0].toUpperCase() + filter.name.substring(1);
+          items: ReportDataFilter.values.map((filter) {
+            String filterName;
+            switch (filter) {
+              case ReportDataFilter.daily:
+                filterName = 'Hàng ngày';
+                break;
+              case ReportDataFilter.weekly:
+                filterName = 'Hàng tuần';
+                break;
+              case ReportDataFilter.biweekly:
+                filterName = 'Hai tuần';
+                break;
+              case ReportDataFilter.monthly:
+                filterName = 'Hàng tháng';
+                break;
+              case ReportDataFilter.yearly:
+                filterName = 'Hàng năm';
+                break;
+            }
             return DropdownMenuItem<ReportDataFilter>(
               value: filter,
               child: Text(filterName, style: TextStyle(color: Colors.grey.shade700)),

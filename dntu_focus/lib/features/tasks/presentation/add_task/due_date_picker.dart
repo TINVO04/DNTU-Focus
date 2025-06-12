@@ -30,15 +30,10 @@ class _DueDatePickerState extends State<DueDatePicker> {
       if (date != null) {
         _selectedDate = date;
       }
-      // Giữ nguyên _selectedDate nếu date là null (cho "Planned")
-      // để khi người dùng nhấn OK, giá trị _selectedDate hiện tại (có thể là từ lịch) được chọn.
-      // Nếu bạn muốn "Planned" thực sự nghĩa là "không có ngày",
-      // thì widget.onDateSelected(null) đã đúng,
-      // và _selectedDate có thể giữ nguyên hoặc reset về _now tùy ý.
     });
-    widget.onDateSelected(date); // Truyền date (có thể null cho "Planned")
+    widget.onDateSelected(date);
     if (mounted) {
-      Navigator.pop(context); // Đóng bottom sheet sau khi chọn nút nhanh
+      Navigator.pop(context);
     }
   }
 
@@ -51,7 +46,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
     final double quickOptionHorizontalPadding = screenWidth < 360 ? 4.0 : 8.0;
     final double quickOptionIconSize = screenWidth < 360 ? 26.0 : 30.0;
     final double circularOptionContainerHeight = screenWidth < 360 ? 60 : 65;
-    final double quickOptionMinWidth = screenWidth / 4.9; // Điều chỉnh nhẹ nếu cần thêm không gian
+    final double quickOptionMinWidth = screenWidth / 4.9;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -61,7 +56,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
           children: [
             const SizedBox(height: 16),
             const Text(
-              'Due Date',
+              'Ngày đến hạn',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.normal),
               textAlign: TextAlign.center,
             ),
@@ -71,16 +66,16 @@ class _DueDatePickerState extends State<DueDatePicker> {
               spacing: quickOptionHorizontalPadding,
               runSpacing: 8.0,
               children: [
-                _buildCircularDateOption(theme, 'Today', Colors.green, Icons.wb_sunny_outlined, _now, circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
-                _buildCircularDateOption(theme, 'Tomorrow', Colors.blue, Icons.wb_cloudy_outlined, _now.add(const Duration(days: 1)), circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
-                _buildCircularDateOption(theme, 'This Week', Colors.purple, Icons.calendar_view_week_outlined, _now.add(Duration(days: DateTime.daysPerWeek - _now.weekday)), circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth), // Cuối tuần này (Chủ nhật)
-                _buildCircularDateOption(theme, 'Planned', Colors.red, Icons.check_circle_outline, null, circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
+                _buildCircularDateOption(theme, 'Hôm nay', Colors.green, Icons.wb_sunny_outlined, _now, circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
+                _buildCircularDateOption(theme, 'Ngày mai', Colors.blue, Icons.wb_cloudy_outlined, _now.add(const Duration(days: 1)), circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
+                _buildCircularDateOption(theme, 'Tuần này', Colors.purple, Icons.calendar_view_week_outlined, _now.add(Duration(days: DateTime.daysPerWeek - _now.weekday)), circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
+                _buildCircularDateOption(theme, 'Lên kế hoạch', Colors.red, Icons.check_circle_outline, null, circularOptionContainerHeight, quickOptionIconSize, quickOptionMinWidth),
               ],
             ),
             const SizedBox(height: 16),
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: (screenHeight * 0.43).clamp(270.0, 340.0), // Giảm nhẹ maxHeight và minHeight
+                maxHeight: (screenHeight * 0.43).clamp(270.0, 340.0),
               ),
               child: TableCalendar(
                 firstDay: _now.subtract(const Duration(days: 30)),
@@ -91,7 +86,6 @@ class _DueDatePickerState extends State<DueDatePicker> {
                   setState(() {
                     _selectedDate = selectedDay;
                   });
-                  // Không gọi widget.onDateSelected ở đây, nút OK sẽ xử lý
                 },
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
@@ -102,24 +96,24 @@ class _DueDatePickerState extends State<DueDatePicker> {
                 ),
                 calendarStyle: CalendarStyle(
                   selectedDecoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.8), // Dùng màu primary từ theme
+                    color: theme.colorScheme.primary.withOpacity(0.8),
                     shape: BoxShape.circle,
                   ),
-                  selectedTextStyle: TextStyle(color: theme.colorScheme.onPrimary), // Chữ trên nền primary
+                  selectedTextStyle: TextStyle(color: theme.colorScheme.onPrimary),
                   todayDecoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.7), // Dùng màu secondary cho today
+                    color: theme.colorScheme.secondary.withOpacity(0.7),
                     shape: BoxShape.circle,
                   ),
                   todayTextStyle: TextStyle(color: theme.colorScheme.onSecondary),
                   outsideDaysVisible: false,
-                  disabledTextStyle: TextStyle(color: Colors.grey.shade400), // Làm mờ hơn chút
+                  disabledTextStyle: TextStyle(color: Colors.grey.shade400),
                 ),
                 daysOfWeekStyle: DaysOfWeekStyle(
                   weekdayStyle: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   weekendStyle: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 daysOfWeekHeight: 20,
-                rowHeight: 36, // Giảm nhẹ rowHeight
+                rowHeight: 36,
                 calendarFormat: CalendarFormat.month,
               ),
             ),
@@ -133,14 +127,14 @@ class _DueDatePickerState extends State<DueDatePicker> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
-                        backgroundColor: theme.dividerColor.withOpacity(0.1), // Màu nền nhẹ từ theme
+                        backgroundColor: theme.dividerColor.withOpacity(0.1),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: Text(
-                        'Cancel',
+                        'Hủy',
                         style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                       ),
                     ),
@@ -151,18 +145,18 @@ class _DueDatePickerState extends State<DueDatePicker> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: ElevatedButton(
                       onPressed: () {
-                        widget.onDateSelected(_selectedDate); // Gửi ngày cuối cùng được chọn từ state
+                        widget.onDateSelected(_selectedDate);
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary, // Dùng màu primary
+                        backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('OK'),
+                      child: const Text('Đồng ý'),
                     ),
                   ),
                 ),
@@ -178,7 +172,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
   Widget _buildCircularDateOption(
       ThemeData theme,
       String label,
-      Color baseColor, // Màu cơ bản của nút (dùng khi không được chọn)
+      Color baseColor,
       IconData icon,
       DateTime? date,
       double containerHeight,
@@ -186,8 +180,6 @@ class _DueDatePickerState extends State<DueDatePicker> {
       double minWidth,
       ) {
     bool isSelected = false;
-    // Chỉ đánh dấu selected nếu date không null và trùng với _selectedDate
-    // Nút "Planned" (date == null) sẽ không có trạng thái isSelected trực quan trên nút này
     if (date != null && isSameDay(_selectedDate, date)) {
       isSelected = true;
     }
@@ -198,10 +190,9 @@ class _DueDatePickerState extends State<DueDatePicker> {
     List<BoxShadow>? currentBoxShadow;
 
     if (isSelected) {
-      // Đặt màu viền khi được chọn
       currentBorderColor = theme.brightness == Brightness.light
-          ? theme.colorScheme.primary // Màu viền cho light theme
-          : theme.colorScheme.onSurface.withOpacity(0.9); // Màu viền cho dark theme
+          ? theme.colorScheme.primary
+          : theme.colorScheme.onSurface.withOpacity(0.9);
       currentBorderWidth = 2.5;
       currentBoxShadow = [
         BoxShadow(
@@ -220,7 +211,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
         children: [
           Container(
             height: containerHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 8), // Giữ padding để icon không quá sát viền
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             constraints: BoxConstraints(minWidth: minWidth),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -232,7 +223,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
             ),
             child: Icon(
               icon,
-              color: Colors.white, // Giữ màu icon là trắng cho dễ nhìn trên nền màu
+              color: Colors.white,
               size: iconSize,
             ),
           ),
@@ -242,7 +233,7 @@ class _DueDatePickerState extends State<DueDatePicker> {
             style: TextStyle(
               color: theme.textTheme.bodyMedium?.color,
               fontSize: 11,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, // Làm đậm chữ khi chọn
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
             textAlign: TextAlign.center,
           ),

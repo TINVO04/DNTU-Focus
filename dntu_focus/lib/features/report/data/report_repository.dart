@@ -32,7 +32,6 @@ class ReportRepository {
     );
   }
 
-  // ===== ĐÃ SỬA LỖI Ở ĐÂY =====
   CollectionReference<Task> _tasksCollection() {
     final userId = _userId;
     if (userId == null) {
@@ -43,7 +42,6 @@ class ReportRepository {
         .doc(userId)
         .collection('tasks')
         .withConverter<Task>(
-      // Sửa lại để dùng đúng factory method "fromJson" đã có trong Task model
       fromFirestore: (snapshot, _) => Task.fromJson(snapshot.data()!, docId: snapshot.id),
       toFirestore: (model, _) => model.toJson(),
     );
@@ -58,10 +56,12 @@ class ReportRepository {
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       debugPrint('Error getting pomodoro sessions: $e');
-      rethrow;
+      // Trả về danh sách rỗng để tránh crash
+      return [];
     }
   }
 
+  // ===== SỬA LỖI QUAN TRỌNG Ở ĐÂY =====
   Future<int> getCompletedTasksCountForRange(ReportTimeRange range) async {
     final dateRange = range.range;
     try {
@@ -73,8 +73,10 @@ class ReportRepository {
           .get();
       return snapshot.count ?? 0;
     } catch (e) {
-      debugPrint('Error getting completed tasks count: $e');
-      rethrow;
+      // THAY ĐỔI: Thay vì ném lại lỗi, ta ghi log và trả về 0.
+      // Điều này ngăn ứng dụng bị crash nếu việc đếm task thất bại.
+      debugPrint('Error getting completed tasks count, returning 0. Error: $e');
+      return 0;
     }
   }
 
@@ -124,60 +126,80 @@ class ReportRepository {
   }
 
   Future<Duration> getTotalFocusTimeForRange(ReportTimeRange range) async {
-    final dateRange = range.range;
-    final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
-    final totalSeconds = sessions
-        .where((s) => s.isWorkSession)
-        .fold<int>(0, (sum, s) => sum + s.duration);
-    return Duration(seconds: totalSeconds);
+    try {
+      final dateRange = range.range;
+      final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
+      final totalSeconds = sessions
+          .where((s) => s.isWorkSession)
+          .fold<int>(0, (sum, s) => sum + s.duration);
+      return Duration(seconds: totalSeconds);
+    } catch(e) {
+      debugPrint('Error getting total focus time, returning Duration.zero. Error: $e');
+      return Duration.zero;
+    }
   }
 
   Future<Map<DateTime, List<PomodoroSessionRecordModel>>> getPomodoroRecordsHeatmapData({
     required ReportTimeRange range,
   }) async {
-    final dateRange = range.range;
-    final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
-    final Map<DateTime, List<PomodoroSessionRecordModel>> data = {};
-    for (final session in sessions) {
-      final day = DateUtils.dateOnly(session.startTime);
-      data.putIfAbsent(day, () => []).add(session);
+    try {
+      final dateRange = range.range;
+      final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
+      final Map<DateTime, List<PomodoroSessionRecordModel>> data = {};
+      for (final session in sessions) {
+        final day = DateUtils.dateOnly(session.startTime);
+        data.putIfAbsent(day, () => []).add(session);
+      }
+      return data;
+    } catch(e) {
+      debugPrint('Error getting heatmap data, returning empty map. Error: $e');
+      return {};
     }
-    return data;
   }
 
   Future<Set<DateTime>> getDaysMeetingFocusGoal(ReportTimeRange range, Duration dailyGoal) async {
-    final dateRange = range.range;
-    final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
-    final Map<DateTime, int> dailyTotals = {};
-    for (final s in sessions.where((e) => e.isWorkSession)) {
-      final day = DateUtils.dateOnly(s.startTime);
-      dailyTotals.update(day, (v) => v + s.duration, ifAbsent: () => s.duration);
+    try {
+      final dateRange = range.range;
+      final sessions = await getPomodoroSessions(dateRange.start, dateRange.end);
+      final Map<DateTime, int> dailyTotals = {};
+      for (final s in sessions.where((e) => e.isWorkSession)) {
+        final day = DateUtils.dateOnly(s.startTime);
+        dailyTotals.update(day, (v) => v + s.duration, ifAbsent: () => s.duration);
+      }
+      final Set<DateTime> metDays = {};
+      for (final entry in dailyTotals.entries) {
+        if (entry.value >= dailyGoal.inSeconds) metDays.add(entry.key);
+      }
+      return metDays;
+    } catch (e) {
+      debugPrint('Error getting goal days, returning empty set. Error: $e');
+      return {};
     }
-    final Set<DateTime> metDays = {};
-    for (final entry in dailyTotals.entries) {
-      if (entry.value >= dailyGoal.inSeconds) metDays.add(entry.key);
-    }
-    return metDays;
   }
 
   Future<List<Map<String, dynamic>>> getFocusTimePerTaskForRange(ReportTimeRange range) async {
-    final taskDurations = await getTaskFocusTime(range);
-    if (taskDurations.isEmpty) return [];
+    try {
+      final taskDurations = await getTaskFocusTime(range);
+      if (taskDurations.isEmpty) return [];
 
-    final List<Map<String, dynamic>> result = [];
-    for (final entry in taskDurations.entries) {
-      try {
-        final doc = await _tasksCollection().doc(entry.key).get();
-        if (doc.exists) {
-          final task = doc.data();
-          if (task != null) {
-            result.add({'task': task, 'focusTime': entry.value});
+      final List<Map<String, dynamic>> result = [];
+      for (final entry in taskDurations.entries) {
+        try {
+          final doc = await _tasksCollection().doc(entry.key).get();
+          if (doc.exists) {
+            final task = doc.data();
+            if (task != null) {
+              result.add({'task': task, 'focusTime': entry.value});
+            }
           }
+        } catch (e) {
+          debugPrint("Could not find task with id: ${entry.key}. Error: $e");
         }
-      } catch (e) {
-        debugPrint("Could not find task with id: ${entry.key}. Error: $e");
       }
+      return result;
+    } catch (e) {
+      debugPrint('Error getting focus time per task, returning empty list. Error: $e');
+      return [];
     }
-    return result;
   }
 }

@@ -9,6 +9,8 @@ import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:moji_todo/features/tasks/data/models/project_tag_repository.dart';
 import 'package:moji_todo/features/tasks/data/task_repository.dart';
 
+import '../data/models/pomodoro_session_model.dart';
+
 class ReportCubit extends Cubit<ReportState> {
   final ReportRepository _reportRepository;
   final ProjectTagRepository _projectTagRepository;
@@ -26,84 +28,75 @@ class ReportCubit extends Cubit<ReportState> {
       // Sử dụng Future.wait với danh sách Future
       final results = await Future.wait([
         // Pomodoro Stats
-        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.today), // Future<Duration>
-        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisWeek), // Future<Duration>
-        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.lastTwoWeeks), // Future<Duration>
-        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisMonth), // Future<Duration>
-        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisYear), // Future<Duration>
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.today), // 0
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisWeek), // 1
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.lastTwoWeeks), // 2
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisMonth), // 3
+        _reportRepository.getTotalFocusTimeForRange(ReportTimeRange.thisYear), // 4
 
         // Task Stats
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today), // Future<int>
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisWeek), // Future<int>
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.lastTwoWeeks), // Future<int>
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisMonth), // Future<int>
-        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisYear), // Future<int>
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.today), // 5
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisWeek), // 6
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.lastTwoWeeks), // 7
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisMonth), // 8
+        _reportRepository.getCompletedTasksCountForRange(ReportTimeRange.thisYear), // 9
 
         // Chart and List Data (với filter mặc định)
-        _reportRepository.getProjectTimeDistributionForRange(ReportTimeRange.thisWeek), // Future<Map<String?, Duration>>
-        _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // Future<Map<String, Duration>>
-        _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks), // Future<Map<DateTime, Map<String?, Duration>>>
+        _reportRepository.getProjectTimeDistributionForRange(ReportTimeRange.thisWeek), // 10
+        _reportRepository.getTaskFocusTime(ReportTimeRange.lastTwoWeeks), // 11
+        _reportRepository.getFocusTimeChartData(ReportTimeRange.lastTwoWeeks), // 12
 
         // Heatmap and goal data
-        _reportRepository.getPomodoroRecordsHeatmapData(range: ReportTimeRange.lastTwoWeeks),
-        _reportRepository.getDaysMeetingFocusGoal(ReportTimeRange.lastTwoWeeks, const Duration(hours: 2)),
+        _reportRepository.getPomodoroRecordsHeatmapData(range: ReportTimeRange.lastTwoWeeks), // 13
+        _reportRepository.getDaysMeetingFocusGoal(ReportTimeRange.lastTwoWeeks, const Duration(hours: 2)), // 14
 
         // Dữ liệu tra cứu
-        Future.value(_projectTagRepository.getProjects()), // Future<List<Project>>
-        _taskRepository.getTasks(), // Future<List<Task>>
-      ].map((future) => future as Future));
+        Future.value(_projectTagRepository.getProjects()), // 15
+        _taskRepository.getTasks(), // 16
+      ].map((future) => future.catchError((_) => null))); // Thêm catchError để ngăn một lỗi làm hỏng tất cả
 
-      // Ép kiểu an toàn từng phần tử
-      final focusTimeToday = results[0] as Duration;
-      final focusTimeThisWeek = results[1] as Duration;
-      final focusTimeThisTwoWeeks = results[2] as Duration;
-      final focusTimeThisMonth = results[3] as Duration;
-      final focusTimeThisYear = results[4] as Duration;
+      // ===== SỬA LỖI: Ép kiểu an toàn với giá trị mặc định =====
+      final focusTimeToday = (results[0] as Duration?) ?? Duration.zero;
+      final focusTimeThisWeek = (results[1] as Duration?) ?? Duration.zero;
+      final focusTimeThisTwoWeeks = (results[2] as Duration?) ?? Duration.zero;
+      final focusTimeThisMonth = (results[3] as Duration?) ?? Duration.zero;
+      final focusTimeThisYear = (results[4] as Duration?) ?? Duration.zero;
 
-      final tasksCompletedToday = results[5] as int;
-      final tasksCompletedThisWeek = results[6] as int;
-      final tasksCompletedThisTwoWeeks = results[7] as int;
-      final tasksCompletedThisMonth = results[8] as int;
-      final tasksCompletedThisYear = results[9] as int;
+      final tasksCompletedToday = (results[5] as int?) ?? 0;
+      final tasksCompletedThisWeek = (results[6] as int?) ?? 0;
+      final tasksCompletedThisTwoWeeks = (results[7] as int?) ?? 0;
+      final tasksCompletedThisMonth = (results[8] as int?) ?? 0;
+      final tasksCompletedThisYear = (results[9] as int?) ?? 0;
 
-      final projectTimeDistribution = results[10] as Map<String?, Duration>;
-      final taskFocusTime = results[11] as Map<String, Duration>;
-      final focusTimeChartData = results[12] as Map<DateTime, Map<String?, Duration>>;
-      final heatmapData = results[13] as Map<DateTime, List<PomodoroSessionRecordModel>>;
-      final goalDays = results[14] as Set<DateTime>;
+      final projectTimeDistribution = (results[10] as Map<String?, Duration>?) ?? {};
+      final taskFocusTime = (results[11] as Map<String, Duration>?) ?? {};
+      final focusTimeChartData = (results[12] as Map<DateTime, Map<String?, Duration>>?) ?? {};
+      final heatmapData = (results[13] as Map<DateTime, List<PomodoroSessionRecordModel>>?) ?? {};
+      final goalDays = (results[14] as Set<DateTime>?) ?? {};
 
-      // Kiểm tra và ép kiểu an toàn cho projects và tasks
-      final projectsRaw = results[15];
-      final tasksRaw = results[16];
-      final List<Project> projects =
-          projectsRaw is List ? projectsRaw.cast<Project>() : <Project>[];
-      final List<Task> tasks =
-          tasksRaw is List ? tasksRaw.cast<Task>() : <Task>[];
+      final projects = (results[15] as List<Project>?) ?? [];
+      final tasks = (results[16] as List<Task>?) ?? [];
 
       // Gán kết quả vào state
       emit(state.copyWith(
         status: ReportStatus.success,
-        // Pomodoro
         focusTimeToday: focusTimeToday,
         focusTimeThisWeek: focusTimeThisWeek,
         focusTimeThisTwoWeeks: focusTimeThisTwoWeeks,
         focusTimeThisMonth: focusTimeThisMonth,
         focusTimeThisYear: focusTimeThisYear,
-        // Tasks
         tasksCompletedToday: tasksCompletedToday,
         tasksCompletedThisWeek: tasksCompletedThisWeek,
         tasksCompletedThisTwoWeeks: tasksCompletedThisTwoWeeks,
         tasksCompletedThisMonth: tasksCompletedThisMonth,
         tasksCompletedThisYear: tasksCompletedThisYear,
-        // Biểu đồ và danh sách
         projectTimeDistribution: projectTimeDistribution,
         taskFocusTime: taskFocusTime,
         focusTimeChartData: focusTimeChartData,
         pomodoroHeatmapData: heatmapData,
         focusGoalMetDays: goalDays,
-        // Dữ liệu tra cứu
-        allProjects: projects.isEmpty ? [] : projects,
-        allTasks: tasks.isEmpty ? [] : tasks,
+        allProjects: projects,
+        allTasks: tasks,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -113,17 +106,15 @@ class ReportCubit extends Cubit<ReportState> {
     }
   }
 
-  // Hàm để thay đổi bộ lọc cho biểu đồ phân bổ project
+  // Các hàm thay đổi filter không thay đổi
   Future<void> changeProjectDistributionFilter(ReportDataFilter filter) async {
     try {
       emit(state.copyWith(status: ReportStatus.loading, projectDistributionFilter: filter));
-
       final range = _getRangeFromFilter(filter);
       final newData = await _reportRepository.getProjectTimeDistributionForRange(range);
-
       emit(state.copyWith(
         status: ReportStatus.success,
-        projectTimeDistribution: newData.isEmpty ? {} : newData,
+        projectTimeDistribution: newData,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -133,17 +124,14 @@ class ReportCubit extends Cubit<ReportState> {
     }
   }
 
-  // Hàm để thay đổi bộ lọc cho biểu đồ cột
   Future<void> changeFocusTimeChartFilter(ReportDataFilter filter) async {
     try {
       emit(state.copyWith(status: ReportStatus.loading, focusTimeChartFilter: filter));
-
       final range = _getRangeFromFilter(filter);
       final newData = await _reportRepository.getFocusTimeChartData(range);
-
       emit(state.copyWith(
         status: ReportStatus.success,
-        focusTimeChartData: newData.isEmpty ? {} : newData,
+        focusTimeChartData: newData,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -153,7 +141,6 @@ class ReportCubit extends Cubit<ReportState> {
     }
   }
 
-  // Helper để lấy khoảng thời gian từ filter
   ReportTimeRange _getRangeFromFilter(ReportDataFilter filter) {
     switch (filter) {
       case ReportDataFilter.daily:

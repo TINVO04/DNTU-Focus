@@ -40,21 +40,21 @@ class _PriorityPickerState extends State<PriorityPicker> {
           children: [
             const SizedBox(height: 16),
             const Text(
-              'Priority',
+              'Ưu tiên',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            _buildPriorityOption('High', Colors.red),
-            _buildPriorityOption('Medium', Colors.orange),
-            _buildPriorityOption('Low', Colors.green),
-            _buildPriorityOption('No Priority', Colors.grey),
+            _buildPriorityOption('Ưu tiên cao', Colors.red),
+            _buildPriorityOption('Ưu tiên trung bình', Colors.orange),
+            _buildPriorityOption('Ưu tiên thấp', Colors.green),
+            _buildPriorityOption('Không ưu tiên', Colors.grey),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: const Text('Hủy'),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -67,7 +67,7 @@ class _PriorityPickerState extends State<PriorityPicker> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text('OK'),
+                  child: const Text('Đồng ý'),
                 ),
               ],
             ),
@@ -81,7 +81,7 @@ class _PriorityPickerState extends State<PriorityPicker> {
   Widget _buildPriorityOption(String label, Color color) {
     return ListTile(
       leading: Icon(Icons.flag, color: color),
-      title: Text('$label Priority'),
+      title: Text(label),
       trailing: selectedPriority == label ? const Icon(Icons.check, color: Colors.red) : null,
       onTap: () {
         _updatePriority(label);
