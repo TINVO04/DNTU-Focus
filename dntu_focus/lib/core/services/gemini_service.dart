@@ -12,8 +12,9 @@ Các quy tắc:
 - Nếu người dùng lên lịch, trả về: {"type":"schedule","title":"...","due_date":"<ISO 8601>","reminder_before":<phút>,"priority":"High|Medium|Low"}
 - Tự suy luận a.m/p.m khi có giờ, mặc định a.m nếu không rõ.
 - Gợi ý priority dựa trên ngữ cảnh (ví dụ: "họp nhóm" -> High).
+- Ngày tháng phải dựa trên thời gian hiện tại được cung cấp trong prompt. "Hôm nay" tương ứng ngày hiện tại, "ngày mai" cộng thêm một ngày.
 Chỉ phản hồi chuỗi JSON duy nhất, không dùng Markdown hay văn bản thừa.
-Ví dụ:
+Ví dụ (giả sử hôm nay là 2025-05-03):
 "làm bài tập toán 25 phút 5 phút nghỉ" -> {"type":"task","title":"Làm bài tập toán","duration":25,"break_duration":5,"priority":"Medium"}
 "ngày mai đi chợ 6 sáng" -> {"type":"schedule","title":"Đi chợ","due_date":"2025-05-04T06:00:00Z","reminder_before":15}
 "họp nhóm lúc 3h" -> {"type":"schedule","title":"Họp nhóm","due_date":"2025-05-03T15:00:00Z","reminder_before":15,"priority":"High"}
@@ -42,7 +43,8 @@ Ví dụ:
 
   // Phân tích câu lệnh người dùng để tạo task hoặc lịch trình
   Future<Map<String, dynamic>> parseUserCommand(String command) async {
-    final prompt = '$_commandParserSystemPrompt\nCâu lệnh: "$command"';
+    final now = DateTime.now().toUtc().toIso8601String();
+    final prompt = '$_commandParserSystemPrompt\nThời gian hiện tại: $now\nCâu lệnh: "$command"';
 
     String? rawText;
     try {
