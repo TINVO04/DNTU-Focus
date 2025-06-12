@@ -233,7 +233,7 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                       // completionDate sẽ là null cho task mới
                     );
                     context.read<TaskCubit>().addTask(task);
-                    Navigator.pop(context);
+                    Navigator.pop(context, task);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
