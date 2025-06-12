@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:hive/hive.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../../core/services/unified_notification_service.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/data/models/task_model.dart';
+import '../../tasks/data/models/project_model.dart';
+import '../../tasks/data/models/tag_model.dart';
+import '../../tasks/presentation/add_task/add_task_bottom_sheet.dart';
+import '../../tasks/data/models/project_tag_repository.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 
 class AIChatScreen extends StatefulWidget {
@@ -126,16 +131,30 @@ class _AIChatScreenState extends State<AIChatScreen> {
           return;
         }
       } else if (normalized.contains('chỉnh') || normalized.contains('thay')) {
+        final taskData = _pendingCommand;
         setState(() {
-          _messages.add({
-            'role': 'assistant',
-            'content': 'Hãy nhập lại thông tin task mới.',
-          });
           _isProcessing = false;
           _awaitingConfirmation = false;
           _pendingCommand = null;
           _suggestions = [];
         });
+        if (taskData != null) {
+          final projectTagRepository = ProjectTagRepository(
+            projectBox: Hive.box<Project>('projects'),
+            tagBox: Hive.box<Tag>('tags'),
+          );
+          await showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => BlocProvider.value(
+              value: context.read<TaskCubit>(),
+              child: AddTaskBottomSheet(
+                repository: projectTagRepository,
+                initialTaskData: taskData,
+              ),
+            ),
+          );
+        }
         _loadSuggestions();
         return;
       } else {
