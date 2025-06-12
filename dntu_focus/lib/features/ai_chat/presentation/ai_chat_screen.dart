@@ -143,7 +143,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
             projectBox: Hive.box<Project>('projects'),
             tagBox: Hive.box<Tag>('tags'),
           );
-          await showModalBottomSheet(
+          final addedTask = await showModalBottomSheet<Task>(
             context: context,
             isScrollControlled: true,
             builder: (context) => BlocProvider.value(
@@ -154,6 +154,14 @@ class _AIChatScreenState extends State<AIChatScreen> {
               ),
             ),
           );
+          if (addedTask != null) {
+            setState(() {
+              _messages.add({
+                'role': 'assistant',
+                'content': 'Đã thêm task: ${addedTask.title}'
+              });
+            });
+          }
         }
         _loadSuggestions();
         return;
