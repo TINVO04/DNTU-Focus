@@ -12,7 +12,7 @@ Các quy tắc:
 - Nếu người dùng lên lịch, trả về: {"type":"schedule","title":"...","due_date":"<ISO 8601>","reminder_before":<phút>,"priority":"High|Medium|Low"}
 - Tự suy luận a.m/p.m khi có giờ, mặc định a.m nếu không rõ.
 - Gợi ý priority dựa trên ngữ cảnh (ví dụ: "họp nhóm" -> High).
-- Ngày tháng phải dựa trên thời gian hiện tại được cung cấp trong prompt. "Hôm nay" tương ứng ngày hiện tại, "ngày mai" cộng thêm một ngày.
+- Ngày tháng phải dựa trên thời gian hiện tại được cung cấp trong prompt. "Hôm nay" tương ứng thời điểm hiện tại (cả ngày và giờ), "ngày mai" cộng thêm một ngày.
 Chỉ phản hồi chuỗi JSON duy nhất, không dùng Markdown hay văn bản thừa.
 Ví dụ (giả sử hôm nay là 2025-05-03):
 "làm bài tập toán 25 phút 5 phút nghỉ" -> {"type":"task","title":"Làm bài tập toán","duration":25,"break_duration":5,"priority":"Medium"}
@@ -63,11 +63,16 @@ Ví dụ (giả sử hôm nay là 2025-05-03):
       final Map<String, dynamic> result =
           jsonDecode(jsonString) as Map<String, dynamic>;
 
-      // Nếu kết quả không có due_date, gán ngày hiện tại (chỉ ngày, không giờ)
+      // Nếu không có due_date và câu lệnh chứa "hôm nay" -> dùng thời điểm hiện tại
       if (result['due_date'] == null) {
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        result['due_date'] = today.toIso8601String().split('T').first;
+        final lower = command.toLowerCase();
+        if (lower.contains('hôm nay')) {
+          result['due_date'] = DateTime.now().toUtc().toIso8601String();
+        } else {
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          result['due_date'] = today.toIso8601String().split('T').first;
+        }
       }
       return result;
     } catch (e) {
