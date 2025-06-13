@@ -66,23 +66,50 @@ Ví dụ (giả sử hôm nay là 2025-05-03):
 
       // Thiếu thời gian hoặc chỉ đề cập "hôm nay" -> dùng thời điểm hiện tại
       final lower = command.toLowerCase();
-      final nowIso = DateTime.now().toUtc().toIso8601String();
-      if (result['due_date'] == null || lower.contains('hôm nay')) {
-        result['due_date'] = nowIso;
+      final now = DateTime.now().toUtc();
+      DateTime dueDate;
+      bool showOnlyDate = false;
+
+      if (result['due_date'] == null) {
+        // Không có thông tin ngày giờ
+        dueDate = now;
+        showOnlyDate = true;
       } else {
         try {
           final parsed = DateTime.parse(result['due_date']);
-          if (parsed.hour == 0 &&
+          final missingTime = parsed.hour == 0 &&
               parsed.minute == 0 &&
               parsed.second == 0 &&
               parsed.millisecond == 0 &&
-              parsed.microsecond == 0) {
-            result['due_date'] = nowIso;
+              parsed.microsecond == 0;
+
+          if (lower.contains('hôm nay') && missingTime) {
+            dueDate = now;
+            showOnlyDate = true;
+          } else if (missingTime) {
+            // Chỉ có ngày, không có giờ -> giữ nguyên ngày, lấy giờ hiện tại
+            dueDate = DateTime.utc(
+              parsed.year,
+              parsed.month,
+              parsed.day,
+              now.hour,
+              now.minute,
+              now.second,
+              now.millisecond,
+              now.microsecond,
+            );
+            showOnlyDate = true;
+          } else {
+            dueDate = parsed;
           }
         } catch (_) {
-          result['due_date'] = nowIso;
+          dueDate = now;
+          showOnlyDate = true;
         }
       }
+
+      result['due_date'] = dueDate.toIso8601String();
+      result['show_only_date'] = showOnlyDate;
       return result;
     } catch (e) {
       print('Error parsing command from Gemini API: $e');
