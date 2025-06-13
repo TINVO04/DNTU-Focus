@@ -125,11 +125,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               appBar: const CustomAppBar(),
-              body: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start, // Dồn lên trên
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              body: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start, // Dồn lên trên
+                          crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Cụm 1: Select Task with action buttons
                     Row(
@@ -241,9 +246,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: const [
-                          Flexible(child: StrictModeMenu()),
-                          Flexible(child: TimerModeMenu()),
-                          Flexible(child: WhiteNoiseMenu()),
+                          Expanded(child: StrictModeMenu()),
+                          Expanded(child: TimerModeMenu()),
+                          Expanded(child: WhiteNoiseMenu()),
                         ],
                       ),
                     ),
