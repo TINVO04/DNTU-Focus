@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../../core/services/unified_notification_service.dart';
 import '../../tasks/domain/task_cubit.dart';
@@ -86,20 +87,21 @@ class _AIChatScreenState extends State<AIChatScreen> {
       final reminderTime = DateTime.parse(commandResult['due_date'])
           .subtract(Duration(minutes: commandResult['reminder_before']));
       final notificationService = UnifiedNotificationService();
+      final formattedDate = DateFormat('dd/MM/yyyy')
+          .format(DateTime.parse(commandResult['due_date']));
       await notificationService.scheduleNotification(
         title: 'Nhắc nhở: ${task.title}',
-        body:
-            'Sắp đến giờ ${task.title} vào lúc ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : commandResult['due_date']}',
+        body: 'Sắp đến giờ ${task.title} vào lúc $formattedDate',
         scheduledTime: reminderTime,
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Đã lên lịch: ${task.title} vào ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : task.dueDate}'),
+          content:
+              Text('Đã lên lịch: ${task.title} vào $formattedDate'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
-      return 'Đã lên lịch: ${task.title} vào ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : task.dueDate}';
+      return 'Đã lên lịch: ${task.title} vào $formattedDate';
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -196,9 +198,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final title = commandResult['title'] ?? '';
     final duration = commandResult['duration'];
     final breakDuration = commandResult['break_duration'];
-    final due = commandResult['show_only_date'] == true
-        ? commandResult['due_date'].split('T').first
-        : commandResult['due_date'];
+    final due = DateFormat('dd/MM/yyyy')
+        .format(DateTime.parse(commandResult['due_date']));
     final priority = commandResult['priority'];
     final summary =
         "Thêm task \"$title\"? Pomodoro: $duration phút nghỉ $breakDuration phút, "
