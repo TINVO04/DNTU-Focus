@@ -1,13 +1,128 @@
 import 'package:flutter/material.dart';
-import 'package:moji_todo/features/report/domain/report_state.dart';
-import 'package:moji_todo/features/tasks/data/models/project_model.dart';
-import 'package:moji_todo/features/tasks/data/models/task_model.dart';
-import 'package:moji_todo/features/report/data/models/pomodoro_session_model.dart';
-import '../widgets/focus_time_bar_chart.dart';
-import '../widgets/pomodoro_records_chart.dart';
-import '../widgets/summary_card.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+
+// --- PHẦN GIẢ LẬP CÁC MODEL VÀ WIDGET CẦN THIẾT ---
+// Để code này có thể chạy độc lập mà không cần các file khác.
+class Project {
+  final String id;
+  final String name;
+  final Color color;
+  Project({required this.id, required this.name, required this.color});
+}
+
+class Task {
+  final String id;
+  final String title;
+  final String? projectId;
+  Task({required this.id, required this.title, this.projectId});
+}
+
+class PomodoroSessionRecordModel {
+  final String id;
+  final DateTime startTime;
+  final DateTime endTime;
+  final int duration;
+  final bool isWorkSession;
+  final String? taskId;
+  final String? projectId;
+
+  PomodoroSessionRecordModel({
+    required this.id,
+    required this.startTime,
+    required this.endTime,
+    required this.duration,
+    required this.isWorkSession,
+    this.taskId,
+    this.projectId,
+  });
+}
+
+enum ReportDataFilter { daily, weekly, biweekly, monthly, yearly }
+enum ReportStatus { success }
+
+class ReportState {
+  final ReportStatus status;
+  final Duration focusTimeToday;
+  final Duration focusTimeThisWeek;
+  final Duration focusTimeThisTwoWeeks;
+  final Duration focusTimeThisMonth;
+  final List<Project> allProjects;
+  final List<Task> allTasks;
+  final Map<DateTime, List<PomodoroSessionRecordModel>> pomodoroHeatmapData;
+  final Map<DateTime, Map<String?, Duration>> focusTimeChartData;
+  final Set<DateTime> focusGoalMetDays;
+  final ReportDataFilter focusTimeChartFilter;
+
+  ReportState({
+    required this.status,
+    required this.focusTimeToday,
+    required this.focusTimeThisWeek,
+    required this.focusTimeThisTwoWeeks,
+    required this.focusTimeThisMonth,
+    required this.allProjects,
+    required this.allTasks,
+    required this.pomodoroHeatmapData,
+    required this.focusTimeChartData,
+    required this.focusGoalMetDays,
+    required this.focusTimeChartFilter,
+  });
+}
+
+class SummaryCard extends StatelessWidget {
+  final String value;
+  final String label;
+  const SummaryCard({Key? key, required this.value, required this.label}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PomodoroRecordsChart extends StatelessWidget {
+  final Map<DateTime, List<PomodoroSessionRecordModel>> data;
+  final List<Project> allProjects;
+
+  const PomodoroRecordsChart({Key? key, required this.data, required this.allProjects}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(height: 150, child: Center(child: Text('[Biểu đồ lịch sử Pomodoro]')));
+  }
+}
+
+class FocusTimeBarChart extends StatelessWidget {
+  final Map<DateTime, Map<String?, Duration>> chartData;
+  final List<Project> allProjects;
+
+  const FocusTimeBarChart({Key? key, required this.chartData, required this.allProjects}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(height: 200, child: Center(child: Text('[Biểu đồ thời gian tập trung]')));
+  }
+}
+// --- KẾT THÚC PHẦN GIẢ LẬP ---
+
 
 class PomodoroReportTabDemo extends StatelessWidget {
   const PomodoroReportTabDemo({super.key});
@@ -63,25 +178,25 @@ class PomodoroReportTabDemo extends StatelessWidget {
 
     final focusTimeChartData = {
       DateTime(now.year, now.month, now.day): {
-        'proj1': Duration(hours: 2),
-        'proj2': Duration(hours: 1),
-        'proj3': Duration(minutes: 30),
+        'proj1': const Duration(hours: 2),
+        'proj2': const Duration(hours: 1),
+        'proj3': const Duration(minutes: 30),
       },
       DateTime(now.year, now.month, now.day - 1): {
-        'proj1': Duration(hours: 1),
-        'proj2': Duration(hours: 2),
+        'proj1': const Duration(hours: 1),
+        'proj2': const Duration(hours: 2),
       },
       DateTime(now.year, now.month, now.day - 2): {
-        'proj3': Duration(hours: 1, minutes: 15),
+        'proj3': const Duration(hours: 1, minutes: 15),
       },
     };
 
     return ReportState(
       status: ReportStatus.success,
-      focusTimeToday: Duration(hours: 3, minutes: 30),
-      focusTimeThisWeek: Duration(hours: 20),
-      focusTimeThisTwoWeeks: Duration(hours: 35),
-      focusTimeThisMonth: Duration(hours: 80),
+      focusTimeToday: const Duration(hours: 3, minutes: 30),
+      focusTimeThisWeek: const Duration(hours: 20),
+      focusTimeThisTwoWeeks: const Duration(hours: 35),
+      focusTimeThisMonth: const Duration(hours: 80),
       allProjects: projects,
       allTasks: tasks,
       pomodoroHeatmapData: pomodoroHeatmapData,
@@ -108,52 +223,68 @@ class PomodoroReportTabDemo extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = getDemoReportState();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSummaryCards(context, state),
-          const SizedBox(height: 24),
-          _buildPomodoroRecords(context, state),
-          const SizedBox(height: 24),
-          _buildFocusGoal(context, state),
-          const SizedBox(height: 24),
-          _buildFocusTimeChart(context, state),
-        ],
+    return Scaffold( // Thêm Scaffold để có nền trắng dễ nhìn
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSummaryCards(context, state),
+            const SizedBox(height: 24),
+            _buildPomodoroRecords(context, state),
+            const SizedBox(height: 24),
+            _buildFocusGoal(context, state),
+            const SizedBox(height: 24),
+            _buildFocusTimeChart(context, state),
+          ],
+        ),
       ),
     );
   }
 
+  // ===== PHẦN ĐƯỢC SỬA LỖI =====
   Widget _buildSummaryCards(BuildContext context, ReportState state) {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = (screenWidth - 32 - 16) / 2;
 
+    // Thay đổi nhãn ở đây để hiển thị nội dung súc tích hơn
     final cards = [
       SummaryCard(
         value: _formatDuration(state.focusTimeToday),
-        label: 'Thời gian tập trung hôm nay',
+        label: 'Hôm nay',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisWeek),
-        label: 'Thời gian tập trung tuần này',
+        label: 'Tuần này',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisTwoWeeks),
-        label: 'Thời gian tập trung 2 tuần',
+        label: '2 tuần',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisMonth),
-        label: 'Thời gian tập trung tháng này',
+        label: 'Tháng này',
       ),
     ];
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: cards.map((card) => SizedBox(width: cardWidth, child: card)).toList(),
+    // Thêm một tiêu đề chung cho khu vực này
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Thời gian tập trung',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cards.map((card) => SizedBox(width: cardWidth, child: card)).toList(),
+        ),
+      ],
     );
   }
+  // ==============================
 
   Widget _buildPomodoroRecords(BuildContext context, ReportState state) {
     return Column(
