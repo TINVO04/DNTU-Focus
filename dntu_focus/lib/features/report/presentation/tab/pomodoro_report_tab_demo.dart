@@ -247,23 +247,23 @@ class PomodoroReportTabDemo extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = (screenWidth - 32 - 16) / 2;
 
-    // Thay đổi nhãn ở đây để hiển thị nội dung súc tích hơn
+    // Nhãn dưới mỗi ô thể hiện rõ khoảng thời gian tương ứng
     final cards = [
       SummaryCard(
         value: _formatDuration(state.focusTimeToday),
-        label: 'Hôm nay',
+        label: 'Thời gian tập trung hôm nay',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisWeek),
-        label: 'Tuần này',
+        label: 'Thời gian tập trung tuần này',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisTwoWeeks),
-        label: '2 tuần',
+        label: 'Thời gian tập trung 2 tuần',
       ),
       SummaryCard(
         value: _formatDuration(state.focusTimeThisMonth),
-        label: 'Tháng này',
+        label: 'Thời gian tập trung tháng này',
       ),
     ];
 
