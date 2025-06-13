@@ -88,16 +88,18 @@ class _AIChatScreenState extends State<AIChatScreen> {
       final notificationService = UnifiedNotificationService();
       await notificationService.scheduleNotification(
         title: 'Nhắc nhở: ${task.title}',
-        body: 'Sắp đến giờ ${task.title} vào lúc ${commandResult['due_date']}',
+        body:
+            'Sắp đến giờ ${task.title} vào lúc ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : commandResult['due_date']}',
         scheduledTime: reminderTime,
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã lên lịch: ${task.title} vào ${task.dueDate}'),
+          content: Text(
+              'Đã lên lịch: ${task.title} vào ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : task.dueDate}'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
-      return 'Đã lên lịch: ${task.title} vào ${task.dueDate}';
+      return 'Đã lên lịch: ${task.title} vào ${commandResult['show_only_date'] == true ? commandResult['due_date'].split('T').first : task.dueDate}';
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -194,8 +196,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
     final title = commandResult['title'] ?? '';
     final duration = commandResult['duration'];
     final breakDuration = commandResult['break_duration'];
-    final due = commandResult['due_date'] ??
-        DateTime.now().toIso8601String().split('T').first;
+    final due = commandResult['show_only_date'] == true
+        ? commandResult['due_date'].split('T').first
+        : commandResult['due_date'];
     final priority = commandResult['priority'];
     final summary =
         "Thêm task \"$title\"? Pomodoro: $duration phút nghỉ $breakDuration phút, "
